@@ -22,8 +22,8 @@ contract AfriCoin is
     ERC20,
     ERC20Burnable,
     ERC20Pausable,
-    Ownable,
-    ERC20Permit
+    ERC20Permit,
+    Ownable
 {
     // Constants
     uint8 private constant DECIMALS = 18;
@@ -39,7 +39,10 @@ contract AfriCoin is
      * Sets token name as "AfriCoin", symbol as "AFRI"
      * Owner is set to the deployer
      */
-    constructor() ERC20("AfriCoin", "AFRI") ERC20Permit("AfriCoin") {}
+    constructor() 
+        ERC20("AfriCoin", "AFRI") 
+        ERC20Permit("AfriCoin") 
+    {}
 
     /**
      * @dev Returns the number of decimals for token display
@@ -89,7 +92,7 @@ contract AfriCoin is
      * 
      * @param amount Amount of tokens to burn (in wei)
      */
-    function burn(uint256 amount) public override {
+    function burn(uint256 amount) public override(ERC20Burnable) {
         require(amount > 0, "AfriCoin: burn amount must be greater than 0");
         _burn(_msgSender(), amount);
         emit TokensBurned(_msgSender(), amount);
@@ -104,7 +107,7 @@ contract AfriCoin is
      */
     function burnFrom(address account, uint256 amount)
         public
-        override
+        override(ERC20Burnable)
     {
         require(amount > 0, "AfriCoin: burn amount must be greater than 0");
         uint256 currentAllowance = allowance(account, _msgSender());
@@ -124,9 +127,6 @@ contract AfriCoin is
     /**
      * @dev Hook that is called before any token transfer
      * Enforces pause mechanism and handles multiple inheritance
-     * 
-     * In Solidity 0.8.20+, this replaces _beforeTokenTransfer
-     * Called by _update before token transfers
      */
     function _beforeTokenTransfer(
         address from,
