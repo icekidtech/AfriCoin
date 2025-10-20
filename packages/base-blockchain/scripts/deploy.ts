@@ -73,25 +73,26 @@ async function main() {
     console.log(`   ✅ Timelock deployed: ${addresses.timelock}\n`);
 
     // Step 4: Delegate voting power
-    console.log("4️⃣  Setting up voting power delegation...");
-    let tx = await afriCoin.delegate(deployer.address);
-    await tx.wait();
-    console.log(`   ✅ Voting power delegated to deployer\n`);
+    // ✂️ REMOVED: delegate() call no longer available
+    // console.log("4️⃣  Setting up voting power delegation...");
+    // let tx = await afriCoin.delegate(deployer.address);
+    // await tx.wait();
+    // console.log(`   ✅ Voting power delegated to deployer\n`);
 
     // Step 5: Deploy AfriDAO
-    console.log("5️⃣  Deploying AfriDAO governance contract...");
+    console.log("4️⃣  Deploying AfriDAO governance contract...");
     const AfriDAOFactory = await ethers.getContractFactory("AfriDAO");
     const afriDAO = await AfriDAOFactory.deploy(
-      addresses.afriCoin,
-      addresses.timelock
+      await afriCoin.getAddress(),
+      await timelock.getAddress()
     );
     await afriDAO.waitForDeployment();
     addresses.afriDAO = await afriDAO.getAddress();
     console.log(`   ✅ AfriDAO deployed: ${addresses.afriDAO}\n`);
 
     // Step 6: Grant roles to AfriDAO
-    console.log("6️⃣  Granting governance roles...");
-    tx = await timelock.grantRole(PROPOSER_ROLE, addresses.afriDAO);
+    console.log("5️⃣  Granting governance roles...");
+    let tx = await timelock.grantRole(PROPOSER_ROLE, addresses.afriDAO);
     await tx.wait();
 
     tx = await timelock.grantRole(EXECUTOR_ROLE, ethers.ZeroAddress);
@@ -99,7 +100,7 @@ async function main() {
     console.log(`   ✅ Governance roles granted\n`);
 
     // Step 7: Mint initial tokens (optional)
-    console.log("7️⃣  Minting initial AfriCoin supply...");
+    console.log("6️⃣  Minting initial AfriCoin supply...");
     const initialSupply = ethers.parseEther("1000000"); // 1 million AfriCoin
     tx = await afriCoin.mint(deployer.address, initialSupply);
     await tx.wait();
