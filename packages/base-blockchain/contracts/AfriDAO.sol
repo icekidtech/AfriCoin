@@ -7,16 +7,22 @@ import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol
 import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+import "./AfriVoting.sol";
 
 /**
  * @title AfriDAO
  * @dev Decentralized governance for AfriCoin protocol
+ * 
+ * Integrates both:
+ * - OpenZeppelin Governor for on-chain voting
+ * - Custom AfriVoting for additional voting features
  * 
  * Features:
  * - Token-based voting (one token = one vote)
  * - Timelock for execution security
  * - Configurable voting periods and thresholds
  * - Transparent proposal process
+ * - Vote delegation support
  */
 contract AfriDAO is
     Governor,
@@ -26,15 +32,18 @@ contract AfriDAO is
     GovernorVotesQuorumFraction,
     GovernorTimelockControl
 {
+    AfriVoting public afriVoting;
+
     /**
      * @dev Initialize AfriDAO governance contract
-     * 
      * @param _token AfriCoin token used for voting
      * @param _timelock Timelock contract for delayed execution
+     * @param _afriVoting Custom voting contract
      */
     constructor(
         IVotes _token,
-        TimelockController _timelock
+        TimelockController _timelock,
+        address _afriVoting
     )
         Governor("AfriDAO")
         GovernorSettings(
@@ -45,7 +54,9 @@ contract AfriDAO is
         GovernorVotes(_token)
         GovernorVotesQuorumFraction(4) // 4% quorum
         GovernorTimelockControl(_timelock)
-    {}
+    {
+        afriVoting = AfriVoting(_afriVoting);
+    }
 
     /**
      * @dev Returns the voting delay in blocks
