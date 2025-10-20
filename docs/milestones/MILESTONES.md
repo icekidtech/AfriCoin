@@ -22,7 +22,7 @@ A comprehensive roadmap for building the MVP of AfriCoin - a pan-African digital
 
 ### Objectives
 
-1. Initialize monorepo structure with Turborepo
+1. Initialize individual project dependencies (e.g frontend, backend, etc) and setup working environment.
 2. Deploy smart contracts to Base Sepolia Testnet
 3. Setup backend with core API endpoints
 4. Establish database schema and ORM
