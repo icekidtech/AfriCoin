@@ -32,9 +32,8 @@ describe("AfriDAO", function () {
     await (afriCoin as any).delegate(owner.address);
     await (afriCoin as any).connect(addr1).delegate(addr1.address);
 
-    const TimelockFactory = await ethers.getContractFactory(
-      "TimelockController"
-    );
+    // Deploy TimelockController
+    const TimelockFactory = await ethers.getContractFactory("TimelockController");
     timelock = await TimelockFactory.deploy(
       MIN_DELAY,
       [owner.address],
@@ -43,11 +42,17 @@ describe("AfriDAO", function () {
     );
     await timelock.waitForDeployment();
 
-    // ✅ FIX: Only pass 2 arguments (token and timelock, not afriVoting)
+    // ✅ ADD: Deploy AfriVoting first
+    const AfriVotingFactory = await ethers.getContractFactory("AfriVoting");
+    const afriVotingInstance = await AfriVotingFactory.deploy(await afriCoin.getAddress());
+    await afriVotingInstance.waitForDeployment();
+
+    // ✅ FIX: Deploy AfriDAO with 3 arguments (token, timelock, afriVoting)
     const AfriDAOFactory = await ethers.getContractFactory("AfriDAO");
     afriDAO = (await AfriDAOFactory.deploy(
       await afriCoin.getAddress(),
-      await timelock.getAddress()
+      await timelock.getAddress(),
+      await afriVotingInstance.getAddress()  // Add the AfriVoting address
     ) as unknown) as AfriDAO;
     await afriDAO.waitForDeployment();
 

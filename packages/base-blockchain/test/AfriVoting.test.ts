@@ -11,16 +11,17 @@ describe("AfriVoting", function () {
   let owner: SignerWithAddress;
   let addr1: SignerWithAddress;
   let addr2: SignerWithAddress;
+  let addr3: SignerWithAddress;  // Add addr3 for zero-balance test
 
   beforeEach(async function () {
-    [owner, addr1, addr2] = await ethers.getSigners();
+    [owner, addr1, addr2, addr3] = await ethers.getSigners();  // Include addr3
 
     // Deploy AfriCoin
     const AfriCoinFactory = await ethers.getContractFactory("AfriCoin");
     afriCoin = (await AfriCoinFactory.deploy()) as unknown as AfriCoin;
     await afriCoin.waitForDeployment();
 
-    // Mint tokens
+    // Mint tokens (addr3 gets none, so zero balance)
     await afriCoin.mint(owner.address, ethers.parseEther("1000"));
     await afriCoin.mint(addr1.address, ethers.parseEther("1000"));
     await afriCoin.mint(addr2.address, ethers.parseEther("100"));
@@ -64,7 +65,7 @@ describe("AfriVoting", function () {
 
     it("Should reject vote creation from insufficient balance", async function () {
       await expect(
-        afriVoting.connect(addr2).createVote(
+        afriVoting.connect(addr3).createVote(  // Use addr3 (zero balance)
           "Test Proposal",
           "This is a test proposal",
           100,
