@@ -1,0 +1,14 @@
+{
+  "name": "AfriCoin",
+  "symbol": "AFRI",
+  "decimals": 18,
+  "logoURI": "https://your-domain.com/logo/afri.png",
+  "address": "0x...",
+  "chainId": 84532,
+  "description": "Pan-African digital stablecoin on Base",
+  "website": "https://africoin.app",
+  "social": {
+    "twitter": "https://twitter.com/africoin",
+    "discord": "https://discord.gg/africoin"
+  }
+}

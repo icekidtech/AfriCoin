@@ -31,19 +31,19 @@ async function main() {
   console.log(`Deployer:   ${deploymentData.deployer}`);
   console.log(`AfriCoin:   ${deploymentData.afriCoin}`);
   console.log(`MockOracle: ${deploymentData.mockOracle}`);
-  console.log(`Timelock:   ${deploymentData.timelock}`);
-  console.log(`AfriDAO:    ${deploymentData.afriDAO}`);
+  // console.log(`Timelock:   ${deploymentData.timelock}`);
+  // console.log(`AfriDAO:    ${deploymentData.afriDAO}`);
   console.log("═".repeat(60));
 
   console.log("\n📝 To verify on Etherscan, run:");
   console.log(`\nnpx hardhat verify --network baseSepolia ${deploymentData.afriCoin}`);
   console.log(`npx hardhat verify --network baseSepolia ${deploymentData.mockOracle}`);
-  console.log(
-    `npx hardhat verify --network baseSepolia ${deploymentData.timelock} 3600 "${deploymentData.deployer}" "${deploymentData.deployer}" "${deploymentData.deployer}"`
-  );
-  console.log(
-    `npx hardhat verify --network baseSepolia ${deploymentData.afriDAO} "${deploymentData.afriCoin}" "${deploymentData.timelock}"`
-  );
+  //console.log(
+  //  `npx hardhat verify --network baseSepolia ${deploymentData.timelock} 3600 "${deploymentData.deployer}" "${deploymentData.deployer}" "${deploymentData.deployer}"`
+  //);
+  //console.log(
+  //  `npx hardhat verify --network baseSepolia ${deploymentData.afriDAO} "${deploymentData.afriCoin}" "${deploymentData.timelock}"`
+  //);
 }
 
 main().catch((error) => {

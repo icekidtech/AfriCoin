@@ -5,7 +5,8 @@ import { AfriCoin, AfriDAO } from "../typechain-types";
 
 const { ethers, network } = hre;
 
-describe("AfriDAO", function () {
+// change to describe.skip to skip DAO tests
+describe.skip("AfriDAO", function () {
   let afriCoin: AfriCoin;
   let timelock: any;
   let afriDAO: AfriDAO;

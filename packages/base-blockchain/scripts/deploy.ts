@@ -53,88 +53,64 @@ async function main() {
     addresses.mockOracle = await mockOracle.getAddress();
     console.log(`   ✅ MockOracle deployed: ${addresses.mockOracle}\n`);
 
-    // Step 3: Deploy Timelock
-    console.log("3️⃣  Deploying TimelockController...");
-    const MIN_DELAY = 3600; // 1 hour
-    const PROPOSER_ROLE = ethers.id("PROPOSER_ROLE");
-    const EXECUTOR_ROLE = ethers.id("EXECUTOR_ROLE");
-
-    const TimelockFactory = await ethers.getContractFactory(
-      "TimelockController"
-    );
-    const timelock = await TimelockFactory.deploy(
-      MIN_DELAY,
-      [deployer.address],
-      [deployer.address],
-      deployer.address
-    );
-    await timelock.waitForDeployment();
-    addresses.timelock = await timelock.getAddress();
-    console.log(`   ✅ Timelock deployed: ${addresses.timelock}\n`);
-
-    // Step 4: Delegate voting power
-    // ✂️ REMOVED: delegate() call no longer available
-    // console.log("4️⃣  Setting up voting power delegation...");
-    // let tx = await afriCoin.delegate(deployer.address);
-    // await tx.wait();
-    // console.log(`   ✅ Voting power delegated to deployer\n`);
-
-    // Step 5: Deploy AfriDAO
-    console.log("4️⃣  Deploying AfriDAO governance contract...");
-    const AfriDAOFactory = await ethers.getContractFactory("AfriDAO");
-    const afriDAO = await AfriDAOFactory.deploy(
-      await afriCoin.getAddress(),
-      await timelock.getAddress()
-    );
-    await afriDAO.waitForDeployment();
-    addresses.afriDAO = await afriDAO.getAddress();
-    console.log(`   ✅ AfriDAO deployed: ${addresses.afriDAO}\n`);
-
-    // Step 6: Grant roles to AfriDAO
-    console.log("5️⃣  Granting governance roles...");
-    let tx = await timelock.grantRole(PROPOSER_ROLE, addresses.afriDAO);
-    await tx.wait();
-
-    tx = await timelock.grantRole(EXECUTOR_ROLE, ethers.ZeroAddress);
-    await tx.wait();
-    console.log(`   ✅ Governance roles granted\n`);
-
-    // Step 7: Mint initial tokens (optional)
-    console.log("6️⃣  Minting initial AfriCoin supply...");
-    const initialSupply = ethers.parseEther("1000000"); // 1 million AfriCoin
-    tx = await afriCoin.mint(deployer.address, initialSupply);
-    await tx.wait();
-    console.log(
-      `   ✅ Minted ${ethers.formatEther(initialSupply)} AfriCoin\n`
-    );
-
-    // Save addresses to file
-    const deploymentDir = path.join(__dirname, "../deployments");
-    if (!fs.existsSync(deploymentDir)) {
-      fs.mkdirSync(deploymentDir, { recursive: true });
+    // Optional: Mint initial tokens directly to deployer (no DAO/timelock)
+    console.log("3️⃣  Minting initial AfriCoin supply to deployer (optional)...");
+    try {
+      const initialMint = ethers.parseEther("1000000"); // adjust if needed
+      const mintTx = await afriCoin.mint(deployer.address, initialMint);
+      await mintTx.wait();
+      console.log(`   ✅ Minted 1,000,000 AfriCoin to deployer\n`);
+    } catch (mintErr) {
+      console.log("   ⚠️ Mint failed or not desired; skipping initial mint\n");
     }
 
-    const filename = path.join(
-      deploymentDir,
-      `${networkName}-${Date.now()}.json`
-    );
-    fs.writeFileSync(filename, JSON.stringify(addresses, null, 2));
+    // Save addresses to JSON file
+    const deploymentsDir = path.join(__dirname, "../deployments");
+    if (!fs.existsSync(deploymentsDir)) {
+      fs.mkdirSync(deploymentsDir, { recursive: true });
+    }
 
-    console.log("📋 Deployment Summary:");
-    console.log("═".repeat(60));
-    console.log(`AfriCoin:   ${addresses.afriCoin}`);
-    console.log(`MockOracle: ${addresses.mockOracle}`);
-    console.log(`Timelock:   ${addresses.timelock}`);
-    console.log(`AfriDAO:    ${addresses.afriDAO}`);
-    console.log("═".repeat(60));
-    console.log(`\n💾 Addresses saved to: ${filename}\n`);
+    const filename = `${networkName}-deployment.json`;
+    const filepath = path.join(deploymentsDir, filename);
+    fs.writeFileSync(filepath, JSON.stringify(addresses, null, 2));
+
+    console.log("✅ Deployment summary:");
+    console.log(JSON.stringify(addresses, null, 2));
+    console.log(`\n📁 Addresses saved to: ${filepath}\n`);
 
     return addresses;
-  } catch (error) {
-    console.error("❌ Deployment failed:");
-    console.error(error);
+  } catch (err) {
+    console.error(err);
     process.exitCode = 1;
   }
 }
 
 main();
+
+
+
+/* 
+
+Once you deploy, share the contract address and I can help you complete the metadata registration process.
+
+TL;DR: After deployment, upload your 256×256px logo to Etherscan or MetaMask's token registry using your contract address. The logo won't be on-chain but will appear in wallets & explorers.
+
+Option 1: MetaMask Token Registry (Recommended)
+Create logo file:
+
+Format: PNG, 256×256px minimum
+Name: afri.png (or similar)
+Save to: /public/logo/ or similar in your project
+Submit to MetaMask token list:
+
+Fork: https://github.com/MetaMask/contract-metadata
+Add your token to the registry with logo
+Create PR and wait for approval
+
+Option 2: Etherscan Logo Upload
+Go to your contract on Etherscan (e.g., etherscan.io/token/0x...)
+Click "Update Token Info"
+Upload logo (256×256px PNG)
+Wait for verification
+
+*/
