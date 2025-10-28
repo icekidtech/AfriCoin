@@ -45,6 +45,35 @@ router.post("/onboard", async (req: Request, res: Response, next) => {
   }
 });
 
+router.post("/verify-pin", async (req: Request, res: Response, next) => {
+  try {
+    const { phoneHash, pin } = req.body;
+
+    if (!phoneHash || !pin) {
+      throw new AppError(400, "Phone hash and PIN are required");
+    }
+
+    if (!validatePin(pin)) {
+      throw new AppError(
+        errorResponses.INVALID_PIN.statusCode,
+        errorResponses.INVALID_PIN.message
+      );
+    }
+
+    const isValid = await walletService.verifyPin(phoneHash, pin);
+
+    res.json({
+      success: true,
+      data: {
+        verified: isValid,
+        message: "PIN verified successfully",
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/balance/:phoneHash", async (req: Request, res: Response, next) => {
   try {
     const { phoneHash } = req.params;
