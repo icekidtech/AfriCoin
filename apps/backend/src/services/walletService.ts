@@ -7,56 +7,33 @@ import { v4 as uuidv4 } from "uuid";
 
 export class WalletService {
   async createWallet(
-    phone: string,
+    phoneHash: string,
     name: string,
     pin: string
-  ): Promise<{ phoneHash: string; walletAddress: string }> {
+  ): Promise<{ success: boolean; phoneHash: string; balance: string }> {
     try {
-      // Check if user exists
-      const phoneHash = hashPhone(phone);
+      // Check if user already exists
       const existingUser = await User.findOne({ phoneHash });
-
       if (existingUser) {
-        throw new AppError(
-          errorResponses.PHONE_EXISTS.statusCode,
-          errorResponses.PHONE_EXISTS.message
-        );
+        throw new AppError(400, "User already exists");
       }
 
-      // Hash PIN
-      const pinHash = await bcryptjs.hash(pin, 10);
-
-      // Generate wallet address (mock)
-      const walletAddress = generateWalletAddress();
-
-      // Mint initial tokens (mock)
-      const initialBalance = (BigInt(process.env.INITIAL_MINT_AMOUNT || "1000000") * BigInt(10) ** BigInt(18)).toString();
-
-      // Create user
+      // Create new user with 0 balance (not 1 million)
       const user = new User({
         phoneHash,
-        phone,
         name,
-        pinHash,
-        walletAddress,
-        balance: initialBalance,
+        pin,
+        balance: "0", // Start with 0 balance
+        createdAt: new Date(),
       });
 
       await user.save();
 
-      // Log mint transaction
-      await Transaction.create({
-        transactionHash: `0x${uuidv4().replace(/-/g, "")}`,
-        senderPhoneHash: "system",
-        senderPhone: "system",
-        recipientPhone: phone,
-        amount: initialBalance,
-        status: "completed",
-        type: "mint",
-        metadata: { reason: "initial_mint" },
-      });
-
-      return { phoneHash, walletAddress };
+      return {
+        success: true,
+        phoneHash,
+        balance: "0",
+      };
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError(
