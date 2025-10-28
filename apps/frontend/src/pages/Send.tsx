@@ -1,213 +1,256 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Send as SendIcon, CheckCircle2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Send as SendIcon, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { CountryCodeSelector } from "@/components/CountryCodeSelector";
+import { api } from "@/lib/api";
 
 const Send = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [step, setStep] = useState<"form" | "pin" | "success">("form");
+  const { user } = useAuth();
+
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [balance, setBalance] = useState("0");
   const [formData, setFormData] = useState({
-    phone: "",
+    recipientPhone: "",
     amount: "",
     pin: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    const loadBalance = async () => {
+      if (!user?.phoneHash) return;
+      try {
+        const response = await api.wallet.getBalance(user.phoneHash);
+        const balanceInWei = response.data.data.balance;
+        const balanceInAfri = (BigInt(balanceInWei) / BigInt(10) ** BigInt(18)).toString();
+        setBalance(balanceInAfri);
+      } catch (error) {
+        console.error("Failed to load balance:", error);
+      }
+    };
 
-    if (step === "form") {
-      if (!formData.phone || !formData.amount) {
-        toast({
-          title: "Missing Information",
-          description: "Please fill in all fields",
-          variant: "destructive",
-        });
-        return;
-      }
-      setStep("pin");
-    } else if (step === "pin") {
-      if (formData.pin.length !== 4) {
-        toast({
-          title: "Invalid PIN",
-          description: "PIN must be 4 digits",
-          variant: "destructive",
-        });
-        return;
-      }
-      setStep("success");
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 2500);
+    loadBalance();
+  }, [user?.phoneHash]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const validateAmount = (amount: string) => {
+    try {
+      return BigInt(amount) > 0n;
+    } catch {
+      return false;
     }
   };
 
-  if (step === "success") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-success/10 via-background to-success/5 flex items-center justify-center p-4">
-        <div className="w-full max-w-md text-center space-y-6 animate-scale-in">
-          <div className="w-24 h-24 mx-auto rounded-full bg-success/10 flex items-center justify-center">
-            <CheckCircle2 className="w-16 h-16 text-success" />
-          </div>
-          <h1 className="text-3xl font-bold">Transfer Successful!</h1>
-          <p className="text-muted-foreground">
-            Your money has been sent successfully
-          </p>
-          <Card className="p-6 text-left space-y-4 shadow-medium border-0">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Recipient</span>
-              <span className="font-semibold">{formData.phone}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Amount</span>
-              <span className="font-bold text-2xl">₳{formData.amount}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Transaction ID</span>
-              <span className="text-sm font-mono">ACF{Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
-            </div>
-          </Card>
-          <Button
-            onClick={() => navigate("/dashboard")}
-            className="w-full gradient-primary text-white font-semibold shadow-medium"
-          >
-            Back to Dashboard
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const handleReviewSubmit = () => {
+    if (!formData.recipientPhone || formData.recipientPhone.length < 10) {
+      toast({
+        title: "Invalid Phone",
+        description: "Enter a valid recipient phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.amount || !validateAmount(formData.amount)) {
+      toast({
+        title: "Invalid Amount",
+        description: "Enter a valid amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const amountBig = BigInt(formData.amount) * BigInt(10) ** BigInt(18);
+    const userBalance = BigInt(balance) * BigInt(10) ** BigInt(18);
+
+    if (amountBig > userBalance) {
+      toast({
+        title: "Insufficient Balance",
+        description: `You only have ${balance} AFRI`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setStep(2);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!/^\d{4}$/.test(formData.pin)) {
+      toast({
+        title: "Invalid PIN",
+        description: "PIN must be 4 digits",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const amountInWei = (BigInt(formData.amount) * BigInt(10) ** BigInt(18)).toString();
+      const response = await api.transfer.send(
+        user!.phoneHash,
+        formData.recipientPhone,
+        amountInWei,
+        formData.pin
+      );
+
+      toast({
+        title: "Transfer Successful! ✓",
+        description: `${formData.amount} AFRI sent to ${formData.recipientPhone}`,
+      });
+
+      setTimeout(() => navigate("/dashboard"), 1500);
+    } catch (error: any) {
+      toast({
+        title: "Transfer Failed",
+        description: error.response?.data?.error || "Failed to send money",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
-      <div className="w-full max-w-md mx-auto pt-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => step === "pin" ? setStep("form") : navigate("/dashboard")}
-            className="w-10 h-10 rounded-xl bg-card shadow-soft flex items-center justify-center"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-2xl font-bold">Send Money</h1>
-        </div>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="bg-gradient-to-b from-primary/10 to-background border-b border-border sticky top-0 z-40">
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          <div className="flex items-center gap-4 mb-6">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/dashboard")}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-2xl font-bold">Send Money</h1>
+          </div>
 
-        {/* Progress */}
-        <div className="flex gap-2">
-          <div className={`h-1 flex-1 rounded-full transition-all ${step === "form" || step === "pin" ? "bg-primary" : "bg-muted"}`}></div>
-          <div className={`h-1 flex-1 rounded-full transition-all ${step === "pin" ? "bg-primary" : "bg-muted"}`}></div>
+          {/* Balance Info */}
+          <Card className="p-4 bg-primary/5">
+            <p className="text-sm text-muted-foreground">Available Balance</p>
+            <p className="text-2xl font-bold">{balance} AFRI</p>
+          </Card>
         </div>
+      </div>
 
-        {/* Form */}
-        <Card className="p-6 shadow-medium border-0 animate-fade-in">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {step === "form" ? (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Recipient Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+254 700 123 456"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="h-12"
+      {/* Content */}
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <Card className="p-6">
+          <form onSubmit={handleSubmit}>
+            {step === 1 ? (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Recipient Phone Number
+                  </label>
+                  <CountryCodeSelector
+                    value={formData.recipientPhone}
+                    onCountryChange={() => {}}
+                    onPhoneChange={(phone) =>
+                      setFormData((prev) => ({ ...prev, recipientPhone: phone }))
+                    }
                   />
-                  <p className="text-xs text-muted-foreground">Include country code</p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Amount (AfriCoin)</Label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-muted-foreground">₳</span>
-                    <Input
-                      id="amount"
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={formData.amount}
-                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                      className="h-16 pl-10 text-3xl font-bold"
-                    />
-                  </div>
-                  {formData.amount && (
-                    <p className="text-sm text-muted-foreground">
-                      ≈ ${(parseFloat(formData.amount) * 0.01).toFixed(2)} USD
-                    </p>
-                  )}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Amount (AFRI)
+                  </label>
+                  <Input
+                    type="number"
+                    name="amount"
+                    placeholder="0.00"
+                    step="0.01"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    disabled={loading}
+                  />
                 </div>
 
-                {/* Quick Amounts */}
-                <div className="grid grid-cols-4 gap-2">
-                {[10, 25, 50, 100].map((amount) => (
-                    <button
-                      key={amount}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, amount: amount.toString() })}
-                      className="py-2 rounded-lg bg-muted hover:bg-primary/10 hover:text-primary transition-smooth font-medium"
-                    >
-                      ₳{amount}
-                    </button>
-                  ))}
-                </div>
-              </>
+                <Button
+                  className="w-full"
+                  onClick={handleReviewSubmit}
+                  type="button"
+                  disabled={loading}
+                >
+                  Review Transfer
+                </Button>
+              </div>
             ) : (
               <div className="space-y-6">
-                <div className="text-center space-y-2 pb-4 border-b border-border">
-                  <p className="text-sm text-muted-foreground">You're sending</p>
-                  <p className="text-4xl font-bold">₳{formData.amount}</p>
-                  <p className="text-sm text-muted-foreground">to {formData.phone}</p>
+                {/* Review Details */}
+                <div className="bg-muted p-4 rounded-lg space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">To:</span>
+                    <span className="font-medium">{formData.recipientPhone}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Amount:</span>
+                    <span className="font-medium">{formData.amount} AFRI</span>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="pin">Enter Your PIN</Label>
-                  <Input
-                    id="pin"
+                {/* PIN Confirmation */}
+                <div>
+                  <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    Enter PIN to Confirm
+                  </label>
+                  <input
                     type="password"
-                    inputMode="numeric"
-                    maxLength={4}
                     placeholder="••••"
+                    maxLength={4}
                     value={formData.pin}
-                    onChange={(e) => setFormData({ ...formData, pin: e.target.value.replace(/\D/g, "") })}
-                    className="h-16 text-center text-3xl tracking-widest"
-                    autoFocus
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        pin: e.target.value.replace(/\D/g, ""),
+                      }))
+                    }
+                    disabled={loading}
+                    className="w-full px-4 py-2 border rounded-lg text-center text-2xl tracking-widest"
                   />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setStep(1)}
+                    type="button"
+                    disabled={loading}
+                    className="flex-1"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    {loading ? "Sending..." : "Confirm & Send"}
+                  </Button>
                 </div>
               </div>
             )}
-
-            <Button
-              type="submit"
-              className="w-full h-12 gradient-primary text-white font-semibold shadow-medium hover:shadow-strong transition-smooth"
-            >
-              {step === "form" ? (
-                <>
-                  Continue
-                  <SendIcon className="ml-2 w-4 h-4" />
-                </>
-              ) : (
-                "Confirm & Send"
-              )}
-            </Button>
           </form>
         </Card>
-
-        {/* Security Note */}
-        {step === "pin" && (
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/10 border border-primary/20">
-            <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-white text-xs">✓</span>
-            </div>
-            <div className="text-sm">
-              <p className="font-medium text-primary">Secure Transaction</p>
-              <p className="text-muted-foreground">Your PIN is encrypted and verified on-chain</p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
