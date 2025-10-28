@@ -2,23 +2,25 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import walletRoutes from "./routes/walletRoutes.js";
-import transferRoutes from "./routes/transferRoutes.js";
-import { errorHandler } from "./middleware/errorHandler.js";
+import walletRoutes from "./routes/walletRoutes";
+import transferRoutes from "./routes/transferRoutes";
+import otpRoutes from "./routes/otpRoutes"; // OTP Routes
+import { errorHandler } from "./middleware/errorHandler";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATABASE_URL = process.env.DATABASE_URL || "mongodb://localhost:27017/africoin";
+const DATABASE_URL = process.env.DATABASE_URL || "";
 
 // Middleware
-app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173" }));
+app.use(cors({ origin: process.env.FRONTEND_URL || "" }));
 app.use(express.json());
 
 // Routes
 app.use("/api/wallet", walletRoutes);
 app.use("/api/transfer", transferRoutes);
+app.use("/api/otp", otpRoutes); // OTP Routes
 
 // Health check
 app.get("/health", (req, res) => {
