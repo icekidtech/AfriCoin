@@ -1,47 +1,46 @@
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, User, Phone, Mail, MapPin } from "lucide-react";
+import { ArrowLeft, User, Phone, Mail, MapPin, Copy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [user, setUser] = useState(() => {
-    const userData = localStorage.getItem("africoin_user");
-    return userData ? JSON.parse(userData) : { name: "", phone: "" };
-  });
   const [email, setEmail] = useState("");
   const [location, setLocation] = useState("");
 
-  const handleSave = () => {
-    localStorage.setItem("africoin_user", JSON.stringify(user));
-    toast({ 
-      title: "Profile Updated", 
-      description: "Your profile has been saved successfully!" 
-    });
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied!", description: "Address copied to clipboard" });
   };
 
+  function handleSave(event: MouseEvent<HTMLButtonElement>): void {
+    throw new Error("Function not implemented.");
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 pb-8">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-card border-b border-border px-4 py-4">
-        <div className="flex items-center gap-4">
+      <div className="sticky top-0 bg-background/80 backdrop-blur-sm border-b border-border">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">
           <button
             onClick={() => navigate("/dashboard")}
-            className="w-10 h-10 rounded-xl hover:bg-muted flex items-center justify-center transition-smooth"
+            className="p-2 hover:bg-muted rounded-lg"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-xl font-bold">Profile Settings</h1>
+          <h1 className="text-xl font-bold">Profile</h1>
         </div>
       </div>
 
       {/* Content */}
-      <div className="px-4 py-6 max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Profile Picture */}
         <Card className="p-6">
           <div className="flex flex-col items-center gap-4">
@@ -57,7 +56,7 @@ const Profile = () => {
         {/* Personal Information */}
         <Card className="p-6 space-y-4">
           <h2 className="text-lg font-semibold mb-4">Personal Information</h2>
-          
+
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
             <div className="relative">
@@ -110,6 +109,24 @@ const Profile = () => {
                 placeholder="City, Country"
                 className="pl-10"
               />
+            </div>
+          </div>
+        </Card>
+
+        {/* Wallet Address */}
+        <Card className="p-6">
+          <div className="space-y-4">
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground mb-1">Wallet Address</p>
+              <div className="flex items-center justify-between">
+                <p className="font-mono text-sm">{user.walletAddress?.slice(0, 20)}...</p>
+                <button
+                  onClick={() => copyToClipboard(user.walletAddress || "")}
+                  className="p-2 hover:bg-background rounded"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </Card>
