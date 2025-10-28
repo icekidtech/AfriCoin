@@ -106,9 +106,9 @@ export const CountryCodeSelector = ({
     <div className="space-y-2">
       <label className="text-sm font-medium">Phone Number</label>
       <div className="flex gap-2 items-center">
-        {/* Country Code Selector - Reduced width */}
+        {/* Country Code Selector - Fixed width with explicit constraints */}
         <Select value={selectedCountry.code} onValueChange={handleCountrySelect}>
-          <SelectTrigger className="w-[95px] border-r-0 rounded-r-none px-2 flex-shrink-0">
+          <SelectTrigger className="w-[90px] min-w-[95px] max-w-[90px] border-r-0 rounded-r-none px-2 flex-shrink-0">
             <SelectValue>
               <span className="flex items-center gap-0.5">
                 <span className="text-lg">{selectedCountry.flag}</span>
