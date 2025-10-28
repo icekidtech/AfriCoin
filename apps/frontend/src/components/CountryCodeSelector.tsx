@@ -106,11 +106,11 @@ export const CountryCodeSelector = ({
     <div className="space-y-2">
       <label className="text-sm font-medium">Phone Number</label>
       <div className="flex gap-2 items-center">
-        {/* Country Code Selector - Narrower */}
+        {/* Country Code Selector - Reduced width */}
         <Select value={selectedCountry.code} onValueChange={handleCountrySelect}>
-          <SelectTrigger className="w-20 border-r-0 rounded-r-none px-30">
+          <SelectTrigger className="w-[95px] border-r-0 rounded-r-none px-2 flex-shrink-0">
             <SelectValue>
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-0.5">
                 <span className="text-lg">{selectedCountry.flag}</span>
                 <span className="font-mono text-xs font-semibold">{selectedCountry.dial_code}</span>
               </span>
