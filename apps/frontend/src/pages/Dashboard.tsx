@@ -19,6 +19,9 @@ import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { ReceiveDialog } from "@/components/ReceiveDialog";
 import { TopUpDialog } from "@/components/TopUpDialog";
 import { api } from "@/lib/api";
+import { TransactionHistory } from "@/components/TransactionHistory";
+import { TransactionHistoryFiltered } from "@/components/TransactionHistoryFiltered";
+import { TransactionDetailModal } from "@/components/TransactionDetailModal";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -33,6 +36,8 @@ const Dashboard = () => {
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [selectedTxHash, setSelectedTxHash] = useState<string | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -90,6 +95,12 @@ const Dashboard = () => {
   const handleLogout = () => {
     logout();
     navigate("/");
+  };
+
+  const handleTransactionSelect = (txHash: string) => {
+    // Find transaction details and open modal
+    setSelectedTxHash(txHash);
+    setSelectedTransaction({ transactionHash: txHash });
   };
 
   if (loading) {
@@ -187,69 +198,7 @@ const Dashboard = () => {
           </Link>
         </div>
 
-        {transactions.length === 0 ? (
-          <Card className="p-8 text-center">
-            <p className="text-muted-foreground">No transactions yet</p>
-            <Link to="/send">
-              <Button className="mt-4">Make Your First Transfer</Button>
-            </Link>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {transactions.slice(0, 5).map((tx) => (
-              <Card
-                key={tx._id}
-                className="p-4 shadow-soft border-0 hover:shadow-medium transition-smooth"
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      tx.type === "send"
-                        ? "bg-accent/10"
-                        : tx.type === "receive"
-                        ? "bg-success/10"
-                        : "bg-primary/10"
-                    }`}
-                  >
-                    {tx.type === "send" ? (
-                      <ArrowUpRight className="w-5 h-5 text-accent" />
-                    ) : tx.type === "receive" ? (
-                      <ArrowDownLeft className="w-5 h-5 text-success" />
-                    ) : (
-                      <Plus className="w-5 h-5 text-primary" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate">
-                      {tx.type === "send"
-                        ? `To ${tx.recipientPhone}`
-                        : tx.type === "receive"
-                        ? `From ${tx.senderPhone}`
-                        : "Wallet Top Up"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(tx.timestamp)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p
-                      className={`font-bold ${
-                        tx.type === "send"
-                          ? "text-accent"
-                          : tx.type === "receive"
-                          ? "text-success"
-                          : "text-primary"
-                      }`}
-                    >
-                      {tx.type === "send" ? "-" : "+"}
-                      {formatAmount(tx.amount)} AFRI
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
+        <TransactionHistoryFiltered onTransactionSelect={handleTransactionSelect} />
       </div>
 
       {/* Voice Command FAB */}
@@ -268,6 +217,17 @@ const Dashboard = () => {
 
       {/* Top Up Dialog */}
       <TopUpDialog open={topUpOpen} onOpenChange={setTopUpOpen} />
+
+      {/* Transaction Detail Modal */}
+      {selectedTransaction && (
+        <TransactionDetailModal
+          open={selectedTxHash !== null}
+          onOpenChange={(open) => {
+            if (!open) setSelectedTxHash(null);
+          }}
+          transaction={selectedTransaction}
+        />
+      )}
 
       {/* Side Menu */}
       {menuOpen && (
