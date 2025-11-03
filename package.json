@@ -13,7 +13,8 @@
     "install:all": "turbo run install",
     "compile": "turbo run compile --filter=@africoin/contracts",
     "deploy:sepolia": "turbo run deploy:sepolia --filter=@africoin/contracts",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "mockOracle": "chmod +x ./scripts/mockOracle.sh && ./scripts/mockOracle.sh"
   },
   "devDependencies": {
     "turbo": "^1.10.16"
