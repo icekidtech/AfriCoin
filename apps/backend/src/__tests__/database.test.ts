@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import mongoose from "mongoose";
 import User from "../models/User.js";
 import Transaction from "../models/Transaction.js";
@@ -10,6 +10,11 @@ describe("Database Collections", () => {
     // Connect to test database
     await mongoose.connect(TEST_DATABASE_URL);
     console.log("✅ Connected to test database");
+    
+    // Ensure indexes are created
+    await User.collection.createIndex({ phoneHash: 1 }, { unique: true });
+    await User.collection.createIndex({ walletAddress: 1 }, { unique: true });
+    await Transaction.collection.createIndex({ transactionHash: 1 }, { unique: true });
   });
 
   afterAll(async () => {
@@ -17,6 +22,12 @@ describe("Database Collections", () => {
     await mongoose.connection.dropDatabase();
     await mongoose.disconnect();
     console.log("✅ Test database cleaned up");
+  });
+
+  beforeEach(async () => {
+    // Clear collections before each test
+    await User.deleteMany({});
+    await Transaction.deleteMany({});
   });
 
   describe("User Collection", () => {
@@ -222,7 +233,7 @@ describe("Database Collections", () => {
     it("should sort transactions by timestamp", async () => {
       const senderHash = "sorting_test_sender";
 
-      const tx1 = await Transaction.create({
+      await Transaction.create({
         transactionHash: "0xtx_first",
         senderPhoneHash: senderHash,
         senderPhone: "+254712345678",
@@ -235,7 +246,7 @@ describe("Database Collections", () => {
       // Wait a bit to ensure different timestamps
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const tx2 = await Transaction.create({
+      await Transaction.create({
         transactionHash: "0xtx_second",
         senderPhoneHash: senderHash,
         senderPhone: "+254712345678",
