@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import walletService from "../services/walletService.js";
 import { validatePhoneNumber, validatePin, validateName } from "../utils/validators.js";
 import { AppError, errorResponses } from "../utils/errorHandler.js";
+import { fundWallet, recordFundingTransaction } from "../controllers/walletController.js";
 
 const router: Router = Router();
 
@@ -88,5 +89,69 @@ router.get("/balance/:phoneHash", async (req: Request, res: Response, next) => {
     next(error);
   }
 });
+
+// NEW: Fund wallet endpoint - integrates with MockOracle conversion
+router.post("/fund", async (req: Request, res: Response, next) => {
+  try {
+    // Validate required fields
+    const { amount, phoneHash, method, currency = "KES" } = req.body;
+
+    if (!amount) {
+      throw new AppError(400, "Amount is required");
+    }
+
+    if (!phoneHash) {
+      throw new AppError(400, "Phone hash is required");
+    }
+
+    if (!method || !["mobileMoney", "bankTransfer", "wallet"].includes(method)) {
+      throw new AppError(
+        400,
+        "Invalid funding method. Must be: mobileMoney, bankTransfer, or wallet"
+      );
+    }
+
+    // Call the funding controller
+    await fundWallet(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// NEW: Record crypto wallet funding transaction
+router.post(
+  "/funding-transaction",
+  async (req: Request, res: Response, next) => {
+    try {
+      // Validate required fields
+      const { txHash, amount, fromAddress, toAddress, method } = req.body;
+
+      if (!txHash) {
+        throw new AppError(400, "Transaction hash is required");
+      }
+
+      if (!amount) {
+        throw new AppError(400, "Amount is required");
+      }
+
+      if (!fromAddress) {
+        throw new AppError(400, "From address is required");
+      }
+
+      if (!toAddress) {
+        throw new AppError(400, "To address is required");
+      }
+
+      if (!method) {
+        throw new AppError(400, "Funding method is required");
+      }
+
+      // Call the recording controller
+      await recordFundingTransaction(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 export default router;
