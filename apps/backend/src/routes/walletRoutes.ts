@@ -1,8 +1,9 @@
 import { Router, Request, Response } from "express";
-import walletService from "../services/walletService.js";
+import { walletService } from "../services/walletService.js";
 import { validatePhoneNumber, validatePin, validateName } from "../utils/validators.js";
 import { AppError, errorResponses } from "../utils/errorHandler.js";
 import { fundWallet, recordFundingTransaction } from "../controllers/walletController.js";
+import { authMiddleware } from "../middleware/auth.js";
 
 const router: Router = Router();
 
@@ -90,37 +91,48 @@ router.get("/balance/:phoneHash", async (req: Request, res: Response, next) => {
   }
 });
 
-// NEW: Fund wallet endpoint - integrates with MockOracle conversion
-router.post("/fund", async (req: Request, res: Response, next) => {
-  try {
-    // Validate required fields
-    const { amount, phoneHash, method, currency = "KES" } = req.body;
-
-    if (!amount) {
-      throw new AppError(400, "Amount is required");
-    }
-
-    if (!phoneHash) {
-      throw new AppError(400, "Phone hash is required");
-    }
-
-    if (!method || !["mobileMoney", "bankTransfer", "wallet"].includes(method)) {
-      throw new AppError(
-        400,
-        "Invalid funding method. Must be: mobileMoney, bankTransfer, or wallet"
-      );
-    }
-
-    // Call the funding controller
-    await fundWallet(req, res, next);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// NEW: Record crypto wallet funding transaction
+/**
+ * POST /api/wallet/fund
+ * Fund wallet (mobile money, bank transfer, or wallet)
+ */
 router.post(
-  "/funding-transaction",
+  "/fund",
+  authMiddleware,
+  async (req: Request, res: Response, next) => {
+    try {
+      // Validate required fields
+      const { amount, phoneHash, method, currency = "KES" } = req.body;
+
+      if (!amount) {
+        throw new AppError(400, "Amount is required");
+      }
+
+      if (!phoneHash) {
+        throw new AppError(400, "Phone hash is required");
+      }
+
+      if (!method || !["mobileMoney", "bankTransfer", "wallet"].includes(method)) {
+        throw new AppError(
+          400,
+          "Invalid funding method. Must be: mobileMoney, bankTransfer, or wallet"
+        );
+      }
+
+      // Call the funding controller
+      await fundWallet(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * POST /api/wallet/record-funding
+ * NEW: Record crypto wallet funding transaction
+ */
+router.post(
+  "/record-funding",
+  authMiddleware,
   async (req: Request, res: Response, next) => {
     try {
       // Validate required fields
