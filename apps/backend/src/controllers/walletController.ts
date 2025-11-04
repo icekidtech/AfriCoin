@@ -143,6 +143,7 @@ export const fundWallet = async (req: Request, res: Response) => {
 
 /**
  * Record funding transaction from crypto wallet
+ * NEW: Records on-chain crypto transactions
  */
 export const recordFundingTransaction = async (req: Request, res: Response) => {
   try {
@@ -151,7 +152,7 @@ export const recordFundingTransaction = async (req: Request, res: Response) => {
     if (!txHash || !amount || !fromAddress || !toAddress || !method) {
       return res.status(400).json({
         success: false,
-        error: "Missing required fields",
+        error: "Missing required fields: txHash, amount, fromAddress, toAddress, method",
       });
     }
 
