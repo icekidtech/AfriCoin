@@ -10,6 +10,7 @@ import { useMockOracle } from "@/hooks/useMockOracle";
 import { useWalletFunding } from "@/hooks/useWalletFunding";
 import { useAuth } from "@/hooks/useAuth";
 import { WalletConnectModal } from "./WalletConnectModal";
+import { useAfriCoinContract } from "@/hooks/useAfriCoinContract";
 
 interface TopUpDialogProps {
   open: boolean;
@@ -23,6 +24,7 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
     useMockOracle();
   const { fundViaWallet, fundViaBackend, loading: fundingLoading } =
     useWalletFunding();
+  const { fundUserAccount, loading: contractLoading } = useAfriCoinContract();
 
   const [amount, setAmount] = useState("");
   const [phone, setPhone] = useState("");
@@ -37,7 +39,7 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
   const [walletModalOpen, setWalletModalOpen] = useState(false);
 
   const quickAmounts = [100, 500, 1000, 2000];
-  const loading = priceLoading || fundingLoading;
+  const loading = priceLoading || fundingLoading || contractLoading;
 
   /**
    * Fetch conversion rate when amount or currency changes
@@ -131,17 +133,22 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
 
   const handleWalletSuccess = async (txHash: string) => {
     try {
-      // Record transaction in backend
-      // Replace with the correct API call for recording wallet funding transaction
-      // Example: If you have an 'addFundingTransaction' method, use it:
-      await api.wallet.addFundingTransaction({
-        txHash,
-        amount: afriCoinAmount || amount,
-        fromAddress: "user-wallet",
-        toAddress: user?.walletAddress || "",
-        method: "wallet",
+      // Record transaction in backend via POST endpoint
+      const response = await fetch("/api/wallet/record-funding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          txHash,
+          amount: afriCoinAmount || amount,
+          fromAddress: user?.walletAddress,
+          toAddress: user?.walletAddress,
+          method: "wallet",
+        }),
       });
-      // If you do not have such a method, you need to implement it in your backend and expose it in your API client.
+
+      if (!response.ok) {
+        throw new Error("Failed to record transaction");
+      }
 
       toast({
         title: "Funding Successful",
@@ -154,8 +161,12 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
       setFundingMethod("mobileMoneyMoney");
     } catch (err) {
       console.error("Failed to record transaction:", err);
+      toast({
+        title: "Warning",
+        description: "Transaction sent but could not be recorded. Please contact support.",
+        variant: "destructive",
+      });
     }
-  };
   };
 
   return (
