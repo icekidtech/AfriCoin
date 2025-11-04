@@ -21,3 +21,8 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
   req.phoneHash = phoneHash;
   next();
 };
+
+/**
+ * Alias for requireAuth to match the import in walletRoutes
+ */
+export const authMiddleware = requireAuth;
