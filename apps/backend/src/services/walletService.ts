@@ -6,6 +6,10 @@ import bcryptjs from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import { ethers } from 'ethers';
 import { AFRICOIN_ADDRESS, AFRICOIN_ABI } from '../config/contracts';
+import dotenv from 'dotenv';
+
+// Load .env at the top of this module
+dotenv.config();
 
 const BASE_SEPOLIA_RPC = process.env.BASE_SEPOLIA_RPC || 'https://sepolia.base.org';
 const PRIVATE_KEY = process.env.BACKEND_PRIVATE_KEY || '';
