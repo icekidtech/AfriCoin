@@ -16,7 +16,7 @@ export const useMockOracle = () => {
   const [error, setError] = useState<string | null>(null);
 
   const provider = new ethers.JsonRpcProvider(
-    process.env.VITE_BASE_SEPOLIA_RPC || "https://sepolia.base.org"
+    import.meta.env.VITE_BASE_SEPOLIA_RPC || "https://sepolia.base.org"
   );
 
   const oracle = new ethers.Contract(
