@@ -1,13 +1,18 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import mongoose from "mongoose";
-import walletRoutes from "./routes/walletRoutes";
-import transferRoutes from "./routes/transferRoutes";
-import otpRoutes from "./routes/otpRoutes"; // OTP Routes
-import { errorHandler } from "./middleware/errorHandler";
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+// Load environment variables FIRST, before anything else
 dotenv.config();
+
+import express from 'express';
+import cors from 'cors';
+import mongoose from 'mongoose';
+import walletRoutes from './routes/walletRoutes.js';
+import transferRoutes from './routes/transferRoutes.js';
+import otpRoutes from './routes/otpRoutes.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { walletService } from './services/walletService.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
