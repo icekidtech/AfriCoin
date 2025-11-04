@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import transferService from "../services/transferService.js";
-import walletService from "../services/walletService.js";
+import { walletService } from "../services/walletService.js";
 import { validatePhoneNumber, validateAmount, validatePin } from "../utils/validators.js";
 import { AppError, errorResponses } from "../utils/errorHandler.js";
 
