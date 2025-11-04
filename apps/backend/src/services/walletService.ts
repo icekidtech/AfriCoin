@@ -4,8 +4,102 @@ import { hashPhone, generateWalletAddress } from "../utils/phoneHash.js";
 import { AppError, errorResponses } from "../utils/errorHandler.js";
 import bcryptjs from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
+import { ethers } from 'ethers';
+import { AFRICOIN_ADDRESS, AFRICOIN_ABI } from '../config/contracts';
+
+const BASE_SEPOLIA_RPC = process.env.BASE_SEPOLIA_RPC || 'https://sepolia.base.org';
+const PRIVATE_KEY = process.env.BACKEND_PRIVATE_KEY || '';
 
 export class WalletService {
+  private provider: ethers.Provider;
+  private signer: ethers.Signer;
+  private contract: ethers.Contract;
+
+  constructor() {
+    // Validate private key exists
+    if (!PRIVATE_KEY || PRIVATE_KEY.trim().length === 0) {
+      throw new Error('BACKEND_PRIVATE_KEY environment variable is not set');
+    }
+
+    let privateKey = PRIVATE_KEY.trim();
+
+    // Remove 0x prefix if it exists (for flexibility)
+    if (privateKey.startsWith('0x') || privateKey.startsWith('0X')) {
+      privateKey = privateKey.slice(2);
+    }
+
+    // Validate format: should be exactly 64 hex characters
+    if (privateKey.length !== 64) {
+      throw new Error(
+        `Invalid BACKEND_PRIVATE_KEY format. Expected 64 hex characters, got ${privateKey.length}`
+      );
+    }
+
+    // Validate it's valid hex
+    if (!/^[0-9a-fA-F]+$/.test(privateKey)) {
+      throw new Error('BACKEND_PRIVATE_KEY must contain only hex characters (0-9, a-f, A-F)');
+    }
+
+    this.provider = new ethers.JsonRpcProvider(BASE_SEPOLIA_RPC);
+    // ethers.js will handle the format internally
+    this.signer = new ethers.Wallet(privateKey, this.provider);
+    this.contract = new ethers.Contract(
+      AFRICOIN_ADDRESS,
+      AFRICOIN_ABI,
+      this.signer
+    );
+
+    console.log(`✅ WalletService initialized with address: ${(this.signer as ethers.Wallet).address}`);
+  }
+
+  /**
+   * Fund a user's wallet with AfriCoin tokens
+   * Called after fiat conversion
+   */
+  async fundUserWithAfriCoin(
+    userWalletAddress: string,
+    amountInEther: string
+  ): Promise<{ txHash: string; amount: string }> {
+    try {
+      const amountInWei = ethers.parseEther(amountInEther);
+
+      // Mint tokens
+      const tx = await this.contract.mint(userWalletAddress, amountInWei);
+      
+      // Wait for confirmation
+      const receipt = await tx.wait();
+
+      return {
+        txHash: receipt!.hash,
+        amount: amountInEther,
+      };
+    } catch (error: any) {
+      throw new Error(`Failed to fund wallet: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get user's AfriCoin balance
+   */
+  async getUserBalance(walletAddress: string): Promise<string> {
+    try {
+      const balance = await this.contract.balanceOf(walletAddress);
+      return ethers.formatEther(balance);
+    } catch (error: any) {
+      throw new Error(`Failed to fetch balance: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get contract info
+   */
+  async getTokenInfo() {
+    const name = await this.contract.name();
+    const symbol = await this.contract.symbol();
+    const decimals = await this.contract.decimals();
+    return { name, symbol, decimals };
+  }
+
   async createWallet(
     phoneHash: string,
     name: string,
@@ -99,4 +193,4 @@ export class WalletService {
   }
 }
 
-export default new WalletService();
+export const walletService = new WalletService();
