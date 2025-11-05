@@ -11,7 +11,10 @@ import { useWalletFunding } from "@/hooks/useWalletFunding";
 import { useAuth } from "@/hooks/useAuth";
 import { WalletConnectModal } from "./WalletConnectModal";
 import { useAfriCoinContract } from "@/hooks/useAfriCoinContract";
+import { useAvailableCrypto } from "@/hooks/useAvailableCrypto";
+import { useCryptoDeposit } from "@/hooks/useCryptoDeposit";
 import { ethers } from "ethers";
+import { AFRICOIN_ADDRESS } from "@/config/contracts";
 
 interface TopUpDialogProps {
   open: boolean;
@@ -23,9 +26,11 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
   const { user, account } = useAuth();
   const { convertToAfriCoin, getConversionRate, loading: priceLoading } =
     useMockOracle();
-  const { fundViaWallet, fundViaBackend, loading: fundingLoading } =
+  const { fundViaWallet, fundViaBackend: fundViaBackendHook, loading: fundingLoading } =
     useWalletFunding();
   const { fundUserAccount, loading: contractLoading } = useAfriCoinContract();
+  const { availableCryptos, checkAvailableCrypto, loading: cryptoLoading } = useAvailableCrypto();
+  const { depositCrypto, loading: depositLoading } = useCryptoDeposit();
 
   const [amount, setAmount] = useState("");
   const [phone, setPhone] = useState("");
@@ -33,14 +38,45 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
   const [fundingMethod, setFundingMethod] = useState<
     "mobileMoneyMoney" | "bankTransfer" | "crypto"
   >("mobileMoneyMoney");
-  const [cryptoType, setCryptoType] = useState<"usdc" | "usdt">("usdc");
+  const [selectedCrypto, setSelectedCrypto] = useState<string>('ETH');  // ADD THIS LINE
   const [conversionRate, setConversionRate] = useState<string | null>(null);
   const [afriCoinAmount, setAfriCoinAmount] = useState<string | null>(null);
   const [showConversionDetails, setShowConversionDetails] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
 
   const quickAmounts = [100, 500, 1000, 2000];
-  const loading = priceLoading || fundingLoading || contractLoading;
+  const loading = priceLoading || fundingLoading || contractLoading || cryptoLoading || depositLoading;
+
+  /**
+   * Check available cryptos when crypto method is selected
+   */
+  useEffect(() => {
+    if (fundingMethod === "crypto" && account) {
+      const checkCryptos = async () => {
+        try {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          await checkAvailableCrypto(account, provider);
+        } catch (err) {
+          console.error("Error checking available cryptos:", err);
+          toast({
+            title: "Error",
+            description: "Failed to check available cryptocurrencies",
+            variant: "destructive",
+          });
+        }
+      };
+      checkCryptos();
+    }
+  }, [fundingMethod, account]);
+
+  /**
+   * Update selected crypto when available cryptos change
+   */
+  useEffect(() => {
+    if (availableCryptos.length > 0 && !availableCryptos.find(c => c.symbol === selectedCrypto)) {
+      setSelectedCrypto(availableCryptos[0].symbol);
+    }
+  }, [availableCryptos]);
 
   /**
    * Fetch conversion rate when amount or currency changes
@@ -71,6 +107,57 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
 
     updateConversion();
   }, [amount, currency, fundingMethod, convertToAfriCoin, getConversionRate]);
+
+  const fundViaBackend = async (
+    amount: string,
+    phoneHash: string,
+    method: "mobileMoney" | "bankTransfer",
+    currency: string
+  ) => {
+    // Use the hook's fundViaBackend function
+    await fundViaBackendHook(amount, phoneHash, method, currency);
+  };
+
+  /**
+   * Handle crypto deposit
+   */
+  const handleCryptoDeposit = async () => {
+    if (!amount || !selectedCrypto) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a cryptocurrency and enter an amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+
+      const result = await depositCrypto(
+        selectedCrypto,
+        amount,
+        signer,
+        AFRICOIN_ADDRESS
+      );
+
+      toast({
+        title: "Success",
+        description: `Sent ${amount} ${selectedCrypto}. TX: ${result.txHash.slice(0, 10)}...`,
+      });
+
+      onOpenChange(false);
+      setAmount("");
+      setSelectedCrypto('ETH');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to deposit crypto",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleTopUp = async () => {
     if (!amount) {
@@ -119,8 +206,7 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
         });
         onOpenChange(false);
       } else if (fundingMethod === "crypto") {
-        // Open wallet connection modal
-        setWalletModalOpen(true);
+        await handleCryptoDeposit();
       }
     } catch (error) {
       toast({
@@ -376,6 +462,44 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
             {/* Crypto Details */}
             {fundingMethod === "crypto" && (
               <div className="space-y-4 pt-4 border-t">
+                {/* Available Cryptos */}
+                {availableCryptos.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Select Cryptocurrency</Label>
+                    {availableCryptos.map((crypto) => (
+                      <Card
+                        key={crypto.symbol}
+                        className={`p-3 cursor-pointer transition-all ${
+                          selectedCrypto === crypto.symbol ? 'border-primary bg-primary/5' : ''
+                        }`}
+                        onClick={() => setSelectedCrypto(crypto.symbol)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold">{crypto.symbol}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Balance: {parseFloat(crypto.balance).toFixed(6)} {crypto.symbol}
+                            </p>
+                          </div>
+                          <input
+                            type="radio"
+                            checked={selectedCrypto === crypto.symbol}
+                            onChange={() => setSelectedCrypto(crypto.symbol)}
+                          />
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+
+                {availableCryptos.length === 0 && !cryptoLoading && (
+                  <Card className="bg-amber-50 border-amber-200 p-3">
+                    <p className="text-sm text-amber-900">
+                      No supported cryptocurrencies found. Please connect your wallet and make sure you have ETH, USDC, USDT, DAI, WETH, CBETH, or EURC.
+                    </p>
+                  </Card>
+                )}
+
                 <div>
                   <Label>Amount of {selectedCrypto} to Deposit</Label>
                   <Input
@@ -399,8 +523,8 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
                 </div>
 
                 <Button
-                  onClick={() => handleCryptoDeposit()}
-                  disabled={!amount || loading}
+                  onClick={handleCryptoDeposit}
+                  disabled={!amount || loading || !selectedCrypto}
                   className="w-full"
                 >
                   {loading ? "Processing..." : "Send Crypto"}
