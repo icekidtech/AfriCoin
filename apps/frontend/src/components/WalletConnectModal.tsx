@@ -31,20 +31,24 @@ export const WalletConnectModal = ({
   const [balance, setBalance] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);  // Add this
 
   /**
    * Connect to MetaMask or Web3 wallet
    */
   const handleConnect = async () => {
+    // Prevent multiple simultaneous requests
+    if (isConnecting) return;
+    
     try {
+      setIsConnecting(true);  // Set before request
       setError(null);
 
       if (!window.ethereum) {
         setError("MetaMask not detected. Please install MetaMask to continue.");
         toast({
           title: "Wallet Not Found",
-          description:
-            "Please install MetaMask or another Web3 wallet",
+          description: "Please install MetaMask or another Web3 wallet",
           variant: "destructive",
         });
         return;
@@ -108,6 +112,8 @@ export const WalletConnectModal = ({
         err instanceof Error ? err.message : "Failed to connect wallet";
       setError(errorMsg);
       console.error("Connection error:", err);
+    } finally {
+      setIsConnecting(false);  // Reset after request completes
     }
   };
 
@@ -184,7 +190,7 @@ export const WalletConnectModal = ({
               {
                 chainId: "0x14a34",
                 chainName: "Base Sepolia Testnet",
-                rpcUrls: [process.env.VITE_BASE_SEPOLIA_RPC],
+                rpcUrls: [import.meta.env.VITE_BASE_SEPOLIA_RPC || "https://sepolia.base.org"],
                 nativeCurrency: {
                   name: "Ethereum",
                   symbol: "ETH",
@@ -227,9 +233,9 @@ export const WalletConnectModal = ({
                 onClick={handleConnect}
                 className="w-full"
                 size="lg"
-                disabled={loading}
+                disabled={loading || isConnecting}  // Also disable on isConnecting
               >
-                {loading ? (
+                {loading || isConnecting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Connecting...
