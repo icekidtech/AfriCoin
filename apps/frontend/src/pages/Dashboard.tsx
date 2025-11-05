@@ -213,7 +213,11 @@ const Dashboard = () => {
       <VoiceAssistant open={voiceOpen} onOpenChange={setVoiceOpen} />
 
       {/* Receive Dialog */}
-      <ReceiveDialog open={receiveOpen} onOpenChange={setReceiveOpen} />
+      <ReceiveDialog 
+        open={receiveOpen} 
+        onOpenChange={setReceiveOpen} 
+        phone={user?.phone || user?.phoneNumber || ""} 
+      />
 
       {/* Top Up Dialog */}
       <TopUpDialog open={topUpOpen} onOpenChange={setTopUpOpen} />
