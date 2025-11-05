@@ -8,10 +8,13 @@ export class DepositListener {
   private contract: ethers.Contract;
   private walletService: WalletService;
   private mockOracleContract: ethers.Contract;
+  private pollingInterval: NodeJS.Timeout | null = null;
+  private retryCount = 0;
+  private maxRetries = 3;
+  private baseDelay = 30000; // 30 seconds, more conservative
 
   constructor() {
-    // Replace with your actual RPC URL source, e.g., process.env.RPC_URL or a config value
-        this.provider = new ethers.JsonRpcProvider(process.env.RPC_URL as string);
+    this.provider = new ethers.JsonRpcProvider(process.env.RPC_URL as string);
     
     this.contract = new ethers.Contract(
       CONTRACTS.afriCoin.address,
@@ -46,11 +49,14 @@ export class DepositListener {
     const startBlock = await this.provider.getBlockNumber();
     let lastBlock = startBlock;
 
-    setInterval(async () => {
+    this.pollingInterval = setInterval(async () => {
       try {
         const currentBlock = await this.provider.getBlockNumber();
         
         if (currentBlock > lastBlock) {
+          // Reset retry count on successful poll
+          this.retryCount = 0;
+
           const events = await this.contract.queryFilter(
             this.contract.filters.Deposit(),
             lastBlock + 1,
@@ -81,19 +87,21 @@ export class DepositListener {
           lastBlock = currentBlock;
         }
       } catch (error) {
-        console.error('❌ Polling error:', error);
+        this.retryCount++;
+        const delay = this.baseDelay * Math.pow(2, this.retryCount - 1); // Exponential backoff
+        
+        console.error(`❌ Polling error (attempt ${this.retryCount}/${this.maxRetries}):`, error);
+        
+        if (this.retryCount >= this.maxRetries) {
+          console.error('❌ Max retries reached. Stopping listener.');
+          this.stopListening();
+        } else {
+          console.log(`⏳ Retrying in ${delay / 1000} seconds...`);
+        }
       }
-    }, 12000); // Poll every 12 seconds (Base block time)
-
-    this.provider.on('error', (error) => {
-      console.error('❌ Provider error:', error);
-    });
+    }, this.baseDelay);
   }
 
-  /**
-   * Fetch ETH/AFRI price from MockOracle contract
-   * @returns Price in wei (18 decimals) - represents how many AFRI per 1 ETH
-   */
   private async getEthAfriPrice(): Promise<bigint> {
     try {
       // Convert pair string to bytes32 hash
@@ -106,7 +114,7 @@ export class DepositListener {
       // Call MockOracle.getLatestPrice()
       const price = await this.mockOracleContract.getLatestPrice(pairBytes32);
 
-      console.log(`✅ Retrieved ETH/AFRI price: ${price.toString()} wei (${ethers.formatEther(price)} AFRI/ETH)`);
+      console.log(`✅ Retrieved ETH/AFRI price: ${ethers.formatEther(price)} AFRI/ETH`);
       
       return price;
     } catch (error) {
@@ -130,6 +138,10 @@ export class DepositListener {
    */
   stopListening() {
     console.log('🛑 Stopping Deposit event listener...');
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
     this.contract.removeAllListeners('Deposit');
   }
 }
