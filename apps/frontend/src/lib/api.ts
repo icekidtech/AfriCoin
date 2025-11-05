@@ -5,9 +5,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  timeout: 10000,
+  withCredentials: true,
 });
 
 // Store phoneHash in localStorage after onboarding
@@ -48,12 +47,11 @@ export const api = {
         pin,
       }),
     
-    getHistory: async (phoneHash: string, limit?: number) => {
-      return await apiClient.get(`/transfer/history/${phoneHash}`, {
+    getHistory: (phoneHash: string, limit?: number) =>
+      apiClient.get(`/transfer/history/${phoneHash}`, {
         params: { limit },
-      });
-    },
+      }),
   },
 };
 
-export default apiClient;
+export default api;
