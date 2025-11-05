@@ -132,25 +132,50 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
     }
 
     try {
+      if (!window.ethereum) {
+        throw new Error("MetaMask not detected");
+      }
+
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
+      const signerAddress = await signer.getAddress();
 
-      const result = await depositCrypto(
-        selectedCrypto,
-        amount,
-        signer,
-        AFRICOIN_ADDRESS
-      );
+      if (selectedCrypto === 'ETH') {
+        const amountWei = ethers.parseEther(amount);
 
-      toast({
-        title: "Success",
-        description: `Sent ${amount} ${selectedCrypto}. TX: ${result.txHash.slice(0, 10)}...`,
-      });
+        // Send ETH directly to the AfriCoin contract address
+        // This triggers the receive() function and emits a Deposit event
+        const tx = await signer.sendTransaction({
+          to: AFRICOIN_ADDRESS,
+          value: amountWei,
+        });
+
+        const receipt = await tx.wait();
+
+        toast({
+          title: "Deposit Submitted",
+          description: `Sent ${amount} ETH. Backend will process minting. TX: ${receipt && receipt.hash ? receipt.hash.slice(0, 10) : "N/A"}...`,
+        });
+      } else {
+        // For ERC20 tokens, use the existing depositCrypto logic
+        const result = await depositCrypto(
+          selectedCrypto,
+          amount,
+          signer,
+          AFRICOIN_ADDRESS
+        );
+
+        toast({
+          title: "Success",
+          description: `Sent ${amount} ${selectedCrypto}. TX: ${result.txHash.slice(0, 10)}...`,
+        });
+      }
 
       onOpenChange(false);
       setAmount("");
       setSelectedCrypto('ETH');
     } catch (error) {
+      console.error("Crypto deposit error:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to deposit crypto",
