@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from "react";
-import api from "@/lib/api";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { api } from "@/lib/api";
+import { ethers } from "ethers";
 
 export interface Transaction {
   id: string;
@@ -37,6 +38,8 @@ export const useTransactionHistory = (phoneHash: string | null) => {
     type: "all",
     status: "all",
   });
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchRef = useRef<number>(0);
 
   /**
    * Parse amount from wei string
@@ -125,9 +128,12 @@ export const useTransactionHistory = (phoneHash: string | null) => {
         setLoading(true);
         setError(null);
 
-        const response = await api.transfer.getHistory(phoneHash, limit);
-        const transactions = response.data.data.transactions;
+        const response = await api?.transfer?.getHistory(phoneHash, limit);
+        if (!response?.data?.data?.transactions) {
+          throw new Error("Invalid response format");
+        }
         
+        const transactions = response.data.data.transactions;
         setAllTransactions(transactions);
         setTotalCount(transactions.length);
 
@@ -264,20 +270,41 @@ export const useTransactionHistory = (phoneHash: string | null) => {
   useEffect(() => {
     if (!phoneHash) return;
 
+    // Initial fetch
     fetchHistory();
 
-    // Poll every 10 seconds for pending transactions
-    const interval = setInterval(() => {
-      const hasPending = filteredTransactions.some(
-        (tx) => tx.status === "pending"
-      );
-      if (hasPending) {
-        fetchHistory();
+    // Set up polling - only check every 15 seconds minimum
+    intervalRef.current = setInterval(async () => {
+      const now = Date.now();
+      // Debounce: don't fetch more than once per 10 seconds
+      if (now - lastFetchRef.current < 10000) {
+        return;
       }
-    }, 10000);
 
-    return () => clearInterval(interval);
-  }, [phoneHash, fetchHistory, filteredTransactions]);
+      lastFetchRef.current = now;
+      
+      // Always fetch to check for updates, but don't depend on state
+      try {
+        const response = await api?.transfer?.getHistory(phoneHash, 50);
+        if (response?.data?.data?.transactions) {
+          const txs = response.data.data.transactions;
+          // Only re-render if we have pending transactions
+          const hasPending = txs.some((tx: any) => tx.status === "pending");
+          if (hasPending) {
+            fetchHistory();
+          }
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
+      }
+    }, 15000); // Poll every 15 seconds, not 10
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [phoneHash]); // Only depend on phoneHash
 
   /**
    * Get transaction status label
