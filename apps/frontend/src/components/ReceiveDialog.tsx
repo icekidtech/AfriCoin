@@ -68,7 +68,7 @@ export const ReceiveDialog = ({ open, onOpenChange, phone }: ReceiveDialogProps)
             <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
               <input
                 type="text"
-                value={phone}
+                value={phone || "Loading..."}
                 readOnly
                 className="flex-1 bg-transparent text-center font-mono font-semibold border-none outline-none"
               />
@@ -77,6 +77,7 @@ export const ReceiveDialog = ({ open, onOpenChange, phone }: ReceiveDialogProps)
                 size="sm"
                 onClick={handleCopy}
                 className="flex-shrink-0"
+                disabled={!phone}
               >
                 <Copy className="w-4 h-4" />
               </Button>
