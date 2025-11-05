@@ -13,6 +13,7 @@ import transferRoutes from './routes/transferRoutes.js';
 import otpRoutes from './routes/otpRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { walletService } from './services/walletService.js';
+import { DepositListener } from './services/depositListener.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -48,7 +49,10 @@ app.get("/health", (req, res) => {
 // Error handler (must be last)
 app.use(errorHandler);
 
-// Database connection
+// Initialize Deposit Listener
+let depositListener: DepositListener;
+
+// Database connection and server startup
 async function startServer() {
   try {
     await mongoose.connect(DATABASE_URL);
@@ -58,6 +62,27 @@ async function startServer() {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       console.log(`📡 API: http://localhost:${PORT}/api`);
     });
+
+    // Initialize and start the Deposit Listener after server is running
+    depositListener = new DepositListener();
+    depositListener.startListening();
+    console.log("✅ Deposit Listener started - listening for ETH deposits...");
+
+    // Handle graceful shutdown
+    process.on('SIGINT', () => {
+      console.log('\n🛑 Shutting down gracefully...');
+      depositListener.stopListening();
+      console.log('✅ Deposit Listener stopped');
+      process.exit(0);
+    });
+
+    process.on('SIGTERM', () => {
+      console.log('\n🛑 Termination signal received...');
+      depositListener.stopListening();
+      console.log('✅ Deposit Listener stopped');
+      process.exit(0);
+    });
+
   } catch (error) {
     console.error("❌ Failed to start server:", error);
     process.exit(1);
