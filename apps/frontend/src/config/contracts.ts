@@ -43,7 +43,7 @@ export const CURRENCY_PAIRS = {
 // Cache duration in milliseconds (5 minutes)
 export const PRICE_CACHE_DURATION = 5 * 60 * 1000;
 
-export const AFRICOIN_ADDRESS = '0x3f2f327cF9D276A81D5f16297a5866B99fCFD772';
+export const AFRICOIN_ADDRESS = '0x0803B31C1B3f8aF9755e3CF6D66cDb05b574376b';
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const BASE_SEPOLIA_RPC = 'https://sepolia.base.org';
 
