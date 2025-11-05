@@ -6,6 +6,7 @@ import { AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
 import { ethers } from "ethers";
 import { useToast } from "@/hooks/use-toast";
 import { useWalletFunding } from "@/hooks/useWalletFunding";
+import { useAvailableCrypto } from '@/hooks/useAvailableCrypto';
 import { CONTRACTS } from "@/config/contracts";
 
 interface WalletConnectModalProps {
@@ -25,13 +26,15 @@ export const WalletConnectModal = ({
 }: WalletConnectModalProps) => {
   const { toast } = useToast();
   const { fundViaWallet, loading } = useWalletFunding();
+  const { availableCryptos, checkAvailableCrypto } = useAvailableCrypto();
 
   const [step, setStep] = useState<"connect" | "confirm" | "signing" | "success">("connect");
   const [account, setAccount] = useState<string | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);  // Add this
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [selectedCrypto, setSelectedCrypto] = useState<string>('ETH');
 
   /**
    * Connect to MetaMask or Web3 wallet
@@ -104,6 +107,18 @@ export const WalletConnectModal = ({
       console.log(`Connected: ${connectedAccount}`);
       console.log(`ETH Balance: ${balanceEth}`);
       console.log(`AFRI Balance: ${formattedAfriBalance}`);
+
+      // Check available cryptos
+      const available = await checkAvailableCrypto(connectedAccount, provider);
+      
+      if (available.length === 0) {
+        toast({
+          title: "No Balance",
+          description: "You don't have any supported cryptocurrencies to deposit",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Move to confirmation step
       setStep("confirm");
@@ -361,6 +376,38 @@ export const WalletConnectModal = ({
               <p className="text-xs text-muted-foreground">
                 Modal closing in 3 seconds...
               </p>
+            </div>
+          )}
+
+          {/* Available Cryptos */}
+          {availableCryptos.length > 0 && step === "confirm" && (
+            <div className="space-y-3">
+              <Label>Select Cryptocurrency to Deposit</Label>
+              <div className="space-y-2">
+                {availableCryptos.map((crypto) => (
+                  <Card
+                    key={crypto.symbol}
+                    className={`p-3 cursor-pointer transition-all ${
+                      selectedCrypto === crypto.symbol ? 'border-primary bg-primary/5' : ''
+                    }`}
+                    onClick={() => setSelectedCrypto(crypto.symbol)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">{crypto.symbol}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Balance: {parseFloat(crypto.balance).toFixed(6)} {crypto.symbol}
+                        </p>
+                      </div>
+                      <input
+                        type="radio"
+                        checked={selectedCrypto === crypto.symbol}
+                        onChange={() => setSelectedCrypto(crypto.symbol)}
+                      />
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </div>
           )}
         </div>
