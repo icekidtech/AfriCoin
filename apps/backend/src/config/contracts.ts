@@ -6,13 +6,13 @@
 export const CONTRACTS = {
   afriCoin: {
     address: (process.env.VITE_AFRICOIN_ADDRESS ||
-      "0x82f3cb249b91523b48FFE531DB55FcdfA931AD92") as `0x${string}`,
+      "0xBf8F0475C5328a0bdC78ad2682E97a7cdFFBee3C") as `0x${string}`,
     decimals: 18,
     symbol: "AFRI",
   },
   mockOracle: {
     address: (process.env.VITE_MOCK_ORACLE_ADDRESS ||
-      "0x23eE4Cf902129A527Ad93Da8813d16693591F776") as `0x${string}`,
+      "0x9a2c2D25e8478a80a6be5eBf017bf13f5Cb693d8") as `0x${string}`,
   },
 };
 
@@ -35,7 +35,7 @@ export const CURRENCY_PAIRS = {
 // Cache duration in milliseconds (5 minutes)
 export const PRICE_CACHE_DURATION = 5 * 60 * 1000;
 
-export const AFRICOIN_ADDRESS = '0x82f3cb249b91523b48FFE531DB55FcdfA931AD92';
+export const AFRICOIN_ADDRESS = '0xBf8F0475C5328a0bdC78ad2682E97a7cdFFBee3C';
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const BASE_SEPOLIA_RPC = 'https://sepolia.base.org';
 
