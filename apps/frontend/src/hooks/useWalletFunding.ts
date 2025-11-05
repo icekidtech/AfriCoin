@@ -36,15 +36,32 @@ export const useWalletFunding = () => {
         // Get user's address
         const userAddress = await signer.getAddress();
 
-        // Create contract instance with signer
+        // IMPORTANT: Validate and convert amount correctly
+        let amountWei;
+        try {
+          // Parse the input amount (assume it's in AFRI token units, not ETH)
+          amountWei = ethers.parseEther(amount);
+        } catch (err) {
+          throw new Error(`Invalid amount format: ${amount}`);
+        }
+
+        // Get user's current balance before attempting transfer
+        const provider = signer.provider;
+        if (!provider) throw new Error("No provider available");
+
         const contract = new ethers.Contract(
           CONTRACTS.afriCoin.address,
           AFRICOIN_ABI,
           signer
         );
 
-        // Convert amount to wei
-        const amountWei = ethers.parseEther(amount);
+        // Check user's AFRI balance first
+        const userBalance = await contract.balanceOf(userAddress);
+        if (userBalance < amountWei) {
+          throw new Error(
+            `Insufficient balance. You have ${ethers.formatEther(userBalance)} AFRI, but trying to send ${amount} AFRI`
+          );
+        }
 
         // Execute transfer
         const tx = await contract.transfer(recipientAddress, amountWei);
