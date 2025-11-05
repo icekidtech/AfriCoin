@@ -381,7 +381,7 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
                     Contract Address:
                   </p>
                   <p className="font-mono text-xs bg-white p-2 rounded break-all">
-                    {process.env.VITE_AFRICOIN_ADDRESS}
+                    {import.meta.env.VITE_AFRICOIN_ADDRESS}
                   </p>
                 </div>
 
