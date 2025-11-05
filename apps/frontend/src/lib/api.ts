@@ -48,8 +48,11 @@ export const api = {
         pin,
       }),
     
-    getHistory: (phoneHash: string, limit: number = 20) =>
-      apiClient.get(`/transfer/history/${phoneHash}`, { params: { limit } }),
+    getHistory: async (phoneHash: string, limit?: number) => {
+      return await apiClient.get(`/transfer/history/${phoneHash}`, {
+        params: { limit },
+      });
+    },
   },
 };
 
