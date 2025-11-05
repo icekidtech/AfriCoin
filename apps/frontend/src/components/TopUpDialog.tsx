@@ -11,6 +11,7 @@ import { useWalletFunding } from "@/hooks/useWalletFunding";
 import { useAuth } from "@/hooks/useAuth";
 import { WalletConnectModal } from "./WalletConnectModal";
 import { useAfriCoinContract } from "@/hooks/useAfriCoinContract";
+import { ethers } from "ethers";
 
 interface TopUpDialogProps {
   open: boolean;
@@ -19,7 +20,7 @@ interface TopUpDialogProps {
 
 export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, account } = useAuth();
   const { convertToAfriCoin, getConversionRate, loading: priceLoading } =
     useMockOracle();
   const { fundViaWallet, fundViaBackend, loading: fundingLoading } =
@@ -374,45 +375,36 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
 
             {/* Crypto Details */}
             {fundingMethod === "crypto" && (
-              <div className="space-y-3 pt-2 border-t">
-                <Label>Send from Your Wallet</Label>
+              <div className="space-y-4 pt-4 border-t">
+                <div>
+                  <Label>Amount of {selectedCrypto} to Deposit</Label>
+                  <Input
+                    type="number"
+                    placeholder="0.001"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    step="0.0001"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    You will receive approximately {afriCoinAmount} AFRI
+                  </p>
+                </div>
+
                 <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-sm space-y-2">
-                  <p className="font-semibold text-blue-900">
-                    Contract Address:
-                  </p>
-                  <p className="font-mono text-xs bg-white p-2 rounded break-all">
-                    {import.meta.env.VITE_AFRICOIN_ADDRESS}
+                  <p className="font-semibold text-blue-900">Deposit Details:</p>
+                  <p>Send {amount} {selectedCrypto} to our contract</p>
+                  <p className="text-xs">
+                    Contract: {AFRICOIN_ADDRESS.slice(0, 10)}...
                   </p>
                 </div>
 
-                <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-xs space-y-1 text-amber-900">
-                  <p className="font-semibold">Steps:</p>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>Copy the contract address above</li>
-                    <li>Open your Web3 wallet (MetaMask, etc.)</li>
-                    <li>Send AfriCoin to the address</li>
-                    <li>Sign and confirm the transaction</li>
-                    <li>Funds will be available shortly</li>
-                  </ol>
-                </div>
-
-                {showConversionDetails && amount && (
-                  <Card className="bg-primary/5 border-primary/20 p-3">
-                    <p className="text-sm font-semibold mb-2">
-                      Transaction Details:
-                    </p>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span>Amount:</span>
-                        <span className="font-mono">{amount} USD</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Network:</span>
-                        <span className="font-mono">Base Sepolia</span>
-                      </div>
-                    </div>
-                  </Card>
-                )}
+                <Button
+                  onClick={() => handleCryptoDeposit()}
+                  disabled={!amount || loading}
+                  className="w-full"
+                >
+                  {loading ? "Processing..." : "Send Crypto"}
+                </Button>
               </div>
             )}
 
