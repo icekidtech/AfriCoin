@@ -53,14 +53,24 @@ contract AfriCoin is
     }
 
     /**
+     * @dev Total supply cap (1 billion AFRI)
+     */
+    uint256 public constant MAX_SUPPLY = 1_000_000_000e18; // 1 billion with 18 decimals
+
+    /**
      * @dev Mint new AfriCoin tokens
      * Only callable by contract owner
+     * Cannot exceed MAX_SUPPLY
      * 
      * @param to Address to mint tokens to
      * @param amount Amount of tokens to mint (in wei)
      */
     function mint(address to, uint256 amount) public onlyOwner {
-        require(to != address(0), "AfriCoin: cannot mint to zero address");
+        require(
+            totalSupply() + amount <= MAX_SUPPLY,
+            "AfriCoin: exceeds maximum supply"
+        );
+        require(to != address(0), "AfriCoin: mint to zero address");
         require(amount > 0, "AfriCoin: mint amount must be greater than 0");
         
         _mint(to, amount);
