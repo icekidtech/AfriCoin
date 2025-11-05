@@ -143,18 +143,24 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
       if (selectedCrypto === 'ETH') {
         const amountWei = ethers.parseEther(amount);
 
-        // Send ETH directly to the AfriCoin contract address
-        // This triggers the receive() function and emits a Deposit event
-        const tx = await signer.sendTransaction({
-          to: AFRICOIN_ADDRESS,
-          value: amountWei,
-        });
+        // Validate amount before sending
+        const balance = await provider.getBalance(signerAddress);
+        if (balance < amountWei) {
+          throw new Error(`Insufficient ETH balance. You have ${ethers.formatEther(balance)} ETH`);
+        }
 
-        const receipt = await tx.wait();
+        // Use depositCrypto hook instead of raw sendTransaction
+        // This ensures proper handling and error detection
+        const result = await depositCrypto(
+          'ETH',
+          amount,
+          signer,
+          AFRICOIN_ADDRESS
+        );
 
         toast({
           title: "Deposit Submitted",
-          description: `Sent ${amount} ETH. Backend will process minting. TX: ${receipt && receipt.hash ? receipt.hash.slice(0, 10) : "N/A"}...`,
+          description: `Sent ${amount} ETH. TX: ${result.txHash.slice(0, 10)}...`,
         });
       } else {
         // For ERC20 tokens, use the existing depositCrypto logic
