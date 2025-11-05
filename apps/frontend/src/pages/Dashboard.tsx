@@ -53,12 +53,18 @@ const Dashboard = () => {
         ).toString();
         setBalance(balanceInAfri);
 
-        // Fetch transaction history
-        const historyResponse = await api.transfer.getHistory(
-          user.phoneHash,
-          10
-        );
-        setTransactions(historyResponse.data.data.transactions);
+        // Fetch transaction history with error handling
+        try {
+          const historyResponse = await api.transfer.getHistory(
+            user.phoneHash,
+            10
+          );
+          const txData = historyResponse.data?.data?.transactions || [];
+          setTransactions(Array.isArray(txData) ? txData : []);
+        } catch (historyError) {
+          console.error("Failed to load transaction history:", historyError);
+          setTransactions([]);
+        }
 
         setLoading(false);
       } catch (error) {
@@ -68,6 +74,7 @@ const Dashboard = () => {
           description: "Failed to load wallet data",
           variant: "destructive",
         });
+        setTransactions([]);
       }
     };
 
