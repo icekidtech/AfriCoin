@@ -78,28 +78,38 @@ export const useCryptoDeposit = () => {
         }
 
         if (cryptoSymbol === 'ETH') {
-          // Send native ETH directly
+          // Send native ETH directly to receive() function
           console.log(`Sending native ETH: ${amount} ETH`);
+          console.log(`To address: ${recipientAddress}`);
           const amountWei = ethers.parseEther(amount);
-          const tx = await signer.sendTransaction({
-            to: recipientAddress,
-            value: amountWei,
-          });
-          
-          console.log(`Transaction sent. Hash: ${tx.hash}`);
-          const receipt = await tx.wait();
+          console.log(`Amount in Wei: ${amountWei.toString()}`);
 
-          if (!receipt) throw new Error('Transaction failed - no receipt');
+          try {
+            console.log('Sending transaction...');
+            const tx = await signer.sendTransaction({
+              to: recipientAddress,  // ← Explicit address string
+              value: amountWei,
+            });
 
-          console.log(`✅ ETH transfer confirmed: ${receipt.hash}`);
-          
-          return {
-            txHash: receipt.hash,
-            amount,
-            symbol: 'ETH',
-            fromAddress: userAddress,
-            toAddress: recipientAddress,
-          };
+            console.log(`✅ Transaction sent. Hash: ${tx.hash}`);
+            const receipt = await tx.wait();
+
+            if (!receipt) throw new Error('Transaction failed - no receipt');
+
+            console.log(`✅ ETH deposit confirmed: ${receipt.hash}`);
+
+            return {
+              txHash: receipt.hash,
+              amount,
+              symbol: 'ETH',
+              fromAddress: userAddress,
+              toAddress: recipientAddress,
+            };
+          } catch (txError) {
+            const errorMsg = txError instanceof Error ? txError.message : 'Transaction failed';
+            console.error('❌ Transaction failed:', errorMsg);
+            throw new Error(`ETH deposit failed: ${errorMsg}`);
+          }
         } else {
           // Send ERC20 token
           if (!tokenConfig.address) {
