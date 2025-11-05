@@ -168,4 +168,22 @@ contract AfriCoin is
         require(msg.value > 0, "AfriCoin: deposit amount must be greater than 0");
         emit Deposit(msg.sender, msg.value);
     }
+
+    /**
+     * @dev Explicit deposit function for ETH
+     * Allows users to deposit ETH and emit event for backend processing
+     */
+    function depositETH() external payable {
+        require(msg.value > 0, "AfriCoin: deposit amount must be greater than 0");
+        require(!paused(), "AfriCoin: deposits disabled when paused");
+        emit Deposit(msg.sender, msg.value);
+    }
+
+    /**
+     * @dev Fallback - revert with clear message
+     */
+    fallback() external payable {
+        revert("AfriCoin: use depositETH() to deposit funds");
+    }
+
 }
