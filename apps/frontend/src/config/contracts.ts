@@ -43,7 +43,7 @@ export const CURRENCY_PAIRS = {
 // Cache duration in milliseconds (5 minutes)
 export const PRICE_CACHE_DURATION = 5 * 60 * 1000;
 
-export const AFRICOIN_ADDRESS = '';
+export const AFRICOIN_ADDRESS = '0xBf8F0475C5328a0bdC78ad2682E97a7cdFFBee3C';
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const BASE_SEPOLIA_RPC = 'https://sepolia.base.org';
 
@@ -85,5 +85,14 @@ export const AFRICOIN_ABI = [
     outputs: [{ internalType: 'string', name: '', type: 'string' }],
     stateMutability: 'view',
     type: 'function',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: 'address', name: 'user', type: 'address' },
+      { indexed: false, internalType: 'uint256', name: 'ethAmount', type: 'uint256' },
+    ],
+    name: 'Deposit',
+    type: 'event',
   },
 ];
