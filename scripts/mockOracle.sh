@@ -4,8 +4,8 @@ echo "🧪 Running MockOracle Integration Tests..."
 echo "==========================================="
 
 export BASE_SEPOLIA_RPC="https://base-sepolia.g.alchemy.com/v2/LLyZTy4qCwgzsKzLL6qDC"
-export VITE_MOCK_ORACLE_ADDRESS="0x23eE4Cf902129A527Ad93Da8813d16693591F776"
-export VITE_AFRICOIN_ADDRESS="0x82f3cb249b91523b48FFE531DB55FcdfA931AD92"
+export VITE_MOCK_ORACLE_ADDRESS="0x9a2c2D25e8478a80a6be5eBf017bf13f5Cb693d8"
+export VITE_AFRICOIN_ADDRESS="0xBf8F0475C5328a0bdC78ad2682E97a7cdFFBee3C"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
