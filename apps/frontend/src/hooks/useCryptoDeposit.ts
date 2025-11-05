@@ -78,18 +78,31 @@ export const useCryptoDeposit = () => {
         }
 
         if (cryptoSymbol === 'ETH') {
-          // Send native ETH directly to receive() function
-          console.log(`Sending native ETH: ${amount} ETH`);
+          console.log(`Calling depositETH function: ${amount} ETH`);
           console.log(`To address: ${recipientAddress}`);
           const amountWei = ethers.parseEther(amount);
           console.log(`Amount in Wei: ${amountWei.toString()}`);
 
           try {
-            console.log('Sending transaction...');
-            const tx = await signer.sendTransaction({
-              to: recipientAddress,  // ← Explicit address string
-              value: amountWei,
-            });
+            // Use the explicit depositETH function
+            const DEPOSIT_ABI = [
+              {
+                name: 'depositETH',
+                type: 'function',
+                stateMutability: 'payable',
+                inputs: [],
+                outputs: [],
+              },
+            ];
+
+            const contract = new ethers.Contract(
+              recipientAddress,
+              DEPOSIT_ABI,
+              signer
+            );
+
+            console.log('Calling depositETH...');
+            const tx = await contract.depositETH({ value: amountWei });
 
             console.log(`✅ Transaction sent. Hash: ${tx.hash}`);
             const receipt = await tx.wait();
@@ -107,7 +120,7 @@ export const useCryptoDeposit = () => {
             };
           } catch (txError) {
             const errorMsg = txError instanceof Error ? txError.message : 'Transaction failed';
-            console.error('❌ Transaction failed:', errorMsg);
+            console.error('❌ depositETH failed:', errorMsg);
             throw new Error(`ETH deposit failed: ${errorMsg}`);
           }
         } else {
@@ -129,7 +142,7 @@ export const useCryptoDeposit = () => {
           // Send transfer transaction
           const tx = await contract.transfer(recipientAddress, amountWei);
           console.log(`Transaction sent. Hash: ${tx.hash}`);
-          
+
           const receipt = await tx.wait();
 
           if (!receipt) throw new Error('Transaction failed - no receipt');
