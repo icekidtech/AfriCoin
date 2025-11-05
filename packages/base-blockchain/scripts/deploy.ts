@@ -56,10 +56,11 @@ async function main() {
     // Optional: Mint initial tokens directly to deployer (no DAO/timelock)
     console.log("3️⃣  Minting initial AfriCoin supply to deployer...");
     try {
-      const initialMint = ethers.parseEther("1000000000"); // 1 billion tokens
-      const mintTx = await afriCoin.mint(deployer.address, initialMint);
-      await mintTx.wait();
-      console.log(`   ✅ Minted 1,000,000,000 AfriCoin to deployer\n`);
+      // ✅ COMMENTED OUT - Let deposits mint tokens instead
+      // const initialMint = ethers.parseEther("1000000000"); // 1 billion tokens
+      // const mintTx = await afriCoin.mint(deployer.address, initialMint);
+      // await mintTx.wait();
+      console.log("   ⏭️ Skipping initial mint - deposits will mint dynamically\n");
     } catch (mintErr) {
       console.log("   ⚠️ Mint failed or not desired; skipping initial mint\n");
     }
