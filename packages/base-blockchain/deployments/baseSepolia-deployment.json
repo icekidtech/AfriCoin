@@ -1,9 +1,9 @@
 {
-  "afriCoin": "0x82f3cb249b91523b48FFE531DB55FcdfA931AD92",
+  "afriCoin": "0xBf8F0475C5328a0bdC78ad2682E97a7cdFFBee3C",
   "timelock": "",
   "afriDAO": "",
-  "mockOracle": "0x23eE4Cf902129A527Ad93Da8813d16693591F776",
+  "mockOracle": "0x9a2c2D25e8478a80a6be5eBf017bf13f5Cb693d8",
   "deployer": "0x23F830B3207aE341618aA2EE765A50f23dD53a33",
-  "deploymentTime": "2025-10-31T00:51:26.112Z",
+  "deploymentTime": "2025-11-05T15:10:29.550Z",
   "network": "baseSepolia"
 }
