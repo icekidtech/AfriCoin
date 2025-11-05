@@ -64,8 +64,10 @@ export class DepositListener {
           );
 
           for (const event of events) {
-            const user = event.args?.[0];
-            const ethAmount = event.args?.[1];
+            // Cast event to EventLog to access 'args'
+            const eventLog = event as ethers.EventLog;
+            const user = eventLog.args?.[0];
+            const ethAmount = eventLog.args?.[1];
             
             console.log(`📥 Deposit detected: ${user} sent ${ethers.formatEther(ethAmount)} ETH`);
 
@@ -104,32 +106,33 @@ export class DepositListener {
 
   private async getEthAfriPrice(): Promise<bigint> {
     try {
-      // Convert pair string to bytes32 hash
-      const pairBytes32 = ethers.id('ETH/AFRI');
+      // Get ETH/USD price first
+      const ethUsdPairBytes32 = ethers.id('ETH/USD');
+      console.log(`🔍 Fetching ETH/USD price from MockOracle...`);
       
-      console.log(`🔍 Fetching ETH/AFRI price from MockOracle...`);
-      console.log(`   Pair hash: ${pairBytes32}`);
-      console.log(`   MockOracle address: ${CONTRACTS.mockOracle.address}`);
-
-      // Call MockOracle.getLatestPrice()
-      const price = await this.mockOracleContract.getLatestPrice(pairBytes32);
-
-      console.log(`✅ Retrieved ETH/AFRI price: ${ethers.formatEther(price)} AFRI/ETH`);
+      const ethUsdPrice = await this.mockOracleContract.getLatestPrice(ethUsdPairBytes32);
+      console.log(`✅ ETH/USD price: ${ethers.formatEther(ethUsdPrice)}`);
       
-      return price;
+      // Get USD/AFRI conversion rate
+      const usdAfriPairBytes32 = ethers.id('USD/AFRI');
+      const usdAfriRate = await this.mockOracleContract.getLatestPrice(usdAfriPairBytes32);
+      console.log(`✅ USD/AFRI rate: ${ethers.formatEther(usdAfriRate)} AFRI per USD`);
+      
+      // Calculate: 1 ETH = (ETH/USD price) * (USD/AFRI rate) AFRI
+      // Both prices are in wei (18 decimals)
+      // Formula: (ethUsdPrice * usdAfriRate) / 10^18
+      const oneEther = ethers.parseEther('1');
+      const ethAfriPrice = (ethUsdPrice * usdAfriRate) / oneEther;
+      
+      console.log(`✅ Calculated ETH/AFRI price: ${ethers.formatEther(ethAfriPrice)} AFRI/ETH`);
+      
+      return ethAfriPrice;
     } catch (error) {
       console.error('❌ Error fetching price from MockOracle:', error);
       
-      // Fallback to cached price or default
-      try {
-        const cachedPrice = await fxConverterService.fetchPrice('ETH/AFRI');
-        console.log(`⚠️  Using cached price: ${cachedPrice}`);
-        return BigInt(cachedPrice);
-      } catch (cacheError) {
-        console.error('❌ Failed to get cached price, using hardcoded fallback');
-        // Fallback: 1 ETH = 25M AFRI (from your MockOracle initialization)
-        return ethers.parseEther('25000000');
-      }
+      // Fallback: 1 ETH = $2,500 * 10,000 AFRI/USD = 25M AFRI
+      console.error('❌ Using fallback calculation');
+      return ethers.parseEther('25000000');
     }
   }
 
