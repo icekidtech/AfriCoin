@@ -107,8 +107,9 @@ export class WalletService {
   async createWallet(
     phoneHash: string,
     name: string,
-    pin: string
-  ): Promise<{ success: boolean; phoneHash: string; balance: string }> {
+    pin: string,
+    phone: string  // Add phone parameter
+  ): Promise<{ success: boolean; phoneHash: string; balance: string; walletAddress: string }> {
     try {
       // Check if user already exists
       const existingUser = await User.findOne({ phoneHash });
@@ -116,12 +117,20 @@ export class WalletService {
         throw new AppError(400, "User already exists");
       }
 
-      // Create new user with 0 balance (not 1 million)
+      // Hash the PIN
+      const pinHash = await bcryptjs.hash(pin, 10);
+
+      // Generate wallet address
+      const walletAddress = generateWalletAddress(phoneHash);
+
+      // Create new user with all required fields
       const user = new User({
         phoneHash,
+        phone,  // Add phone
         name,
-        pin,
-        balance: "0", // Start with 0 balance
+        pinHash,  // Use hashed PIN, not plain text
+        walletAddress,  // Add wallet address
+        balance: "0",
         createdAt: new Date(),
       });
 
@@ -130,9 +139,12 @@ export class WalletService {
       return {
         success: true,
         phoneHash,
+        walletAddress,
         balance: "0",
       };
     } catch (error) {
+      // Log original error for debugging, then rethrow a user-friendly AppError
+      console.error("WalletService.createWallet error:", error);
       if (error instanceof AppError) throw error;
       throw new AppError(
         errorResponses.INTERNAL_ERROR.statusCode,
