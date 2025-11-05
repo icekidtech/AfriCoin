@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { walletService } from "../services/walletService.js";
+import { hashPhone } from "../utils/phoneHash.js";
 import { validatePhoneNumber, validatePin, validateName } from "../utils/validators.js";
 import { AppError, errorResponses } from "../utils/errorHandler.js";
 import { fundWallet, recordFundingTransaction } from "../controllers/walletController.js";
@@ -32,7 +33,14 @@ router.post("/onboard", async (req: Request, res: Response, next) => {
       );
     }
 
-    const result = await walletService.createWallet(phone, name, pin);
+    const phoneHash = hashPhone(phone);
+
+    const result = await walletService.createWallet(
+      phoneHash,
+      name,
+      pin,
+      phone
+    );
 
     res.status(201).json({
       success: true,
