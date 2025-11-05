@@ -68,6 +68,8 @@ export const useCryptoDeposit = () => {
         setLoading(true);
         setError(null);
 
+        console.log(`Starting ${cryptoSymbol} deposit: ${amount} to ${recipientAddress}`);
+
         const userAddress = await signer.getAddress();
         const tokenConfig = SUPPORTED_TOKENS[cryptoSymbol];
 
@@ -77,15 +79,20 @@ export const useCryptoDeposit = () => {
 
         if (cryptoSymbol === 'ETH') {
           // Send native ETH directly
+          console.log(`Sending native ETH: ${amount} ETH`);
           const amountWei = ethers.parseEther(amount);
           const tx = await signer.sendTransaction({
             to: recipientAddress,
             value: amountWei,
           });
+          
+          console.log(`Transaction sent. Hash: ${tx.hash}`);
           const receipt = await tx.wait();
 
-          if (!receipt) throw new Error('Transaction failed');
+          if (!receipt) throw new Error('Transaction failed - no receipt');
 
+          console.log(`✅ ETH transfer confirmed: ${receipt.hash}`);
+          
           return {
             txHash: receipt.hash,
             amount,
@@ -99,6 +106,8 @@ export const useCryptoDeposit = () => {
             throw new Error(`No contract address for ${cryptoSymbol}`);
           }
 
+          console.log(`Sending ERC20 ${cryptoSymbol}: ${amount}`);
+
           const contract = new ethers.Contract(
             tokenConfig.address,
             ERC20_ABI,
@@ -109,9 +118,13 @@ export const useCryptoDeposit = () => {
 
           // Send transfer transaction
           const tx = await contract.transfer(recipientAddress, amountWei);
+          console.log(`Transaction sent. Hash: ${tx.hash}`);
+          
           const receipt = await tx.wait();
 
-          if (!receipt) throw new Error('Transaction failed');
+          if (!receipt) throw new Error('Transaction failed - no receipt');
+
+          console.log(`✅ ${cryptoSymbol} transfer confirmed: ${receipt.hash}`);
 
           return {
             txHash: receipt.hash,
@@ -125,6 +138,7 @@ export const useCryptoDeposit = () => {
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Deposit failed';
         setError(errorMsg);
+        console.error(`❌ Deposit error: ${errorMsg}`, err);
         throw err;
       } finally {
         setLoading(false);
