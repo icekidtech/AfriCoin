@@ -25,7 +25,13 @@ contract MockOracle {
         // 1 AFRI = $0.0001
         // So: 1 USD = 10,000 AFRI
         prices[keccak256("USD/AFRI")] = 10000e18;
-        prices[keccak256("EUR/AFRI")] = 11000e18;    // 1 EUR ≈ 1.1 USD
+        
+        // Add ETH/USD price for dynamic conversion
+        // 1 ETH = $2,500 USD (you can adjust this)
+        prices[keccak256("ETH/USD")] = 2500e18;
+        
+        // Other fiat pairs...
+        prices[keccak256("EUR/AFRI")] = 11000e18;
         prices[keccak256("KES/AFRI")] = 80e18;       // 1 KES ≈ 0.008 USD
         prices[keccak256("NGN/AFRI")] = 13e18;       // 1 NGN ≈ 0.0013 USD
         prices[keccak256("GBP/AFRI")] = 12500e18;    // 1 GBP ≈ 1.25 USD
