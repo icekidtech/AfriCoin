@@ -78,4 +78,13 @@ export const AFRICOIN_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: 'address', name: 'user', type: 'address' },
+      { indexed: false, internalType: 'uint256', name: 'ethAmount', type: 'uint256' },
+    ],
+    name: 'Deposit',
+    type: 'event',
+  },
 ];
