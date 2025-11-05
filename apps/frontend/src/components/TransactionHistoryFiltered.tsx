@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,27 @@ export const TransactionHistoryFiltered = ({
     setSearchInput("");
     clearFilters();
   };
+
+  useEffect(() => {
+    if (!user?.phoneHash) return;
+
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true);
+        const response = await api.transfer.getHistory(user.phoneHash, limit);
+        const txData = response.data?.data?.transactions || [];
+        setTransactions(Array.isArray(txData) ? txData : []);
+      } catch (error) {
+        console.error("Failed to fetch transactions:", error);
+        setTransactions([]);
+        setError("Failed to load transactions");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, [user?.phoneHash]);
 
   if (error) {
     return (
