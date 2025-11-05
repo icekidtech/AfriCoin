@@ -33,6 +33,7 @@ contract AfriCoin is
     event TokensBurned(address indexed from, uint256 amount);
     event PausedByOwner(address indexed owner, uint256 timestamp);
     event UnpausedByOwner(address indexed owner, uint256 timestamp);
+    event Deposit(address indexed user, uint256 ethAmount);
 
     /**
      * @dev Initialize AfriCoin token
@@ -65,7 +66,7 @@ contract AfriCoin is
      * @param to Address to mint tokens to
      * @param amount Amount of tokens to mint (in wei)
      */
-    function mint(address to, uint256 amount) public onlyOwner {
+    function mint(address to, uint256 amount) public payable onlyOwner {
         require(
             totalSupply() + amount <= MAX_SUPPLY,
             "AfriCoin: exceeds maximum supply"
@@ -157,5 +158,14 @@ contract AfriCoin is
         returns (uint256)
     {
         return super.nonces(owner);
+    }
+
+    /**
+     * @dev Receive ETH deposits and emit event for backend processing
+     * The backend will listen for Deposit events and mint equivalent AFRI tokens
+     */
+    receive() external payable {
+        require(msg.value > 0, "AfriCoin: deposit amount must be greater than 0");
+        emit Deposit(msg.sender, msg.value);
     }
 }
