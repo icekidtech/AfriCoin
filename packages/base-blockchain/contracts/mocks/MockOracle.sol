@@ -22,11 +22,26 @@ contract MockOracle {
         owner = msg.sender;
         
         // Initialize mock prices (in wei, scaled to 18 decimals)
-        // 1 USD = 1e18 wei
-        prices[keccak256("USD/AFRI")] = 1e18;
-        prices[keccak256("EUR/AFRI")] = 1.1e18;
-        prices[keccak256("KES/AFRI")] = 0.008e18;
-        prices[keccak256("NGN/AFRI")] = 0.0013e18;
+        // 1 AFRI = $0.0001
+        // So: 1 USD = 10,000 AFRI
+        prices[keccak256("USD/AFRI")] = 10000e18;
+        prices[keccak256("EUR/AFRI")] = 11000e18;    // 1 EUR ≈ 1.1 USD
+        prices[keccak256("KES/AFRI")] = 80e18;       // 1 KES ≈ 0.008 USD
+        prices[keccak256("NGN/AFRI")] = 13e18;       // 1 NGN ≈ 0.0013 USD
+        prices[keccak256("GBP/AFRI")] = 12500e18;    // 1 GBP ≈ 1.25 USD
+        prices[keccak256("ZAR/AFRI")] = 530e18;      // 1 ZAR ≈ 0.053 USD
+        
+        // Crypto conversions (1 stablecoin = 10,000 AFRI)
+        prices[keccak256("USDC/AFRI")] = 10000e18;
+        prices[keccak256("USDT/AFRI")] = 10000e18;
+        
+        // ETH conversion (1 ETH = ~$2500, so 25,000,000 AFRI)
+        prices[keccak256("ETH/AFRI")] = 25000000e18;
+        
+        // Other Base tokens
+        prices[keccak256("DAI/AFRI")] = 10000e18;     // 1 DAI ≈ 1 USD
+        prices[keccak256("CBETH/AFRI")] = 25000000e18; // Coinbase wrapped ETH
+        prices[keccak256("WETH/AFRI")] = 25000000e18;  // Wrapped ETH
     }
 
     modifier onlyOwner() {
