@@ -5,19 +5,15 @@
   "private": true,
   "packageManager": "pnpm@10.18.3",
   "scripts": {
-    "dev": "turbo run dev --parallel",
-    "build": "turbo run build --filter='./apps/*' --filter='./packages/*'",
-    "test": "turbo run test",
-    "test:coverage": "turbo run test:coverage",
-    "lint": "turbo run lint",
-    "format": "turbo run format",
-    "compile": "turbo run compile --filter=@africoin/contracts",
-    "deploy:sepolia": "turbo run deploy:sepolia --filter=@africoin/contracts",
-    "clean": "turbo run clean && rm -rf node_modules",
-    "mockOracle": "chmod +x ./scripts/mockOracle.sh && ./scripts/mockOracle.sh"
-  },
-  "devDependencies": {
-    "turbo": "^2.6.0"
+    "dev:frontend": "cd apps/frontend && pnpm dev",
+    "dev:backend": "cd apps/backend && pnpm dev",
+    "dev:contracts": "cd packages/base-blockchain && pnpm dev",
+    "build:frontend": "cd apps/frontend && pnpm build",
+    "build:backend": "cd apps/backend && pnpm build",
+    "build:contracts": "cd packages/base-blockchain && pnpm build",
+    "compile": "cd packages/base-blockchain && pnpm compile",
+    "deploy:sepolia": "cd packages/base-blockchain && pnpm deploy:sepolia",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules"
   },
   "engines": {
     "node": ">=16.0.0"
