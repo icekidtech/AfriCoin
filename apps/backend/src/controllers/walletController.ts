@@ -2,8 +2,8 @@ import { Request, Response } from "express";
 import { ethers } from "ethers";
 import Wallet from "../models/Wallet.js";
 import Transaction from "../models/Transaction.js";
-import { walletService } from "../services/walletService";
-import { fxConverterService } from "../services/fxConverterService";
+import { walletService } from "../services/walletService.js";
+import { fxConverterService } from "../services/fxConverterService.js";
 
 /**
  * Fund wallet with conversion from fiat to AfriCoin
