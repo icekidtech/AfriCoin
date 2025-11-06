@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
-import { WalletService } from './walletService';
-import { CONTRACTS, AFRICOIN_ABI, CURRENCY_PAIRS } from '../config/contracts';
-import { fxConverterService } from './fxConverterService';
+import { WalletService } from './walletService.js';
+import { CONTRACTS, AFRICOIN_ABI, CURRENCY_PAIRS } from '../config/contracts.js';
+import { fxConverterService } from './fxConverterService.js';
 
 export class DepositListener {
   private provider: ethers.Provider;
