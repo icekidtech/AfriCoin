@@ -1,8 +1,9 @@
 {
-  "name": "africoin-monorepo",
+  "name": "africoin",
   "version": "1.0.0",
   "description": "Pan-African digital stablecoin platform",
   "private": true,
+  "packageManager": "pnpm@10.18.3",
   "scripts": {
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
