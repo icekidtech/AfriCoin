@@ -42,68 +42,6 @@ export class DepositListener {
     this.walletService = new WalletService();
   }
 
-  async startListening() {
-    console.log('🚀 Starting Deposit event listener...');
-
-    // Poll for events instead of using filters
-    const startBlock = await this.provider.getBlockNumber();
-    let lastBlock = startBlock;
-
-    this.pollingInterval = setInterval(async () => {
-      try {
-        const currentBlock = await this.provider.getBlockNumber();
-        
-        if (currentBlock > lastBlock) {
-          // Reset retry count on successful poll
-          this.retryCount = 0;
-
-          const events = await this.contract.queryFilter(
-            this.contract.filters.Deposit(),
-            lastBlock + 1,
-            currentBlock
-          );
-
-          for (const event of events) {
-            // Cast event to EventLog to access 'args'
-            const eventLog = event as ethers.EventLog;
-            const user = eventLog.args?.[0];
-            const ethAmount = eventLog.args?.[1];
-            
-            console.log(`📥 Deposit detected: ${user} sent ${ethers.formatEther(ethAmount)} ETH`);
-
-            try {
-              const ethAfriPriceWei = await this.getEthAfriPrice();
-              const afriAmount = (ethAmount * ethAfriPriceWei) / ethers.parseEther('1');
-              
-              const result = await this.walletService.fundUserWithAfriCoin(
-                user,
-                ethers.formatEther(afriAmount)
-              );
-
-              console.log(`✅ Minted ${ethers.formatEther(afriAmount)} AFRI to ${user}. TX: ${result.txHash}`);
-            } catch (error) {
-              console.error('❌ Failed to process deposit:', error);
-            }
-          }
-
-          lastBlock = currentBlock;
-        }
-      } catch (error) {
-        this.retryCount++;
-        const delay = this.baseDelay * Math.pow(2, this.retryCount - 1); // Exponential backoff
-        
-        console.error(`❌ Polling error (attempt ${this.retryCount}/${this.maxRetries}):`, error);
-        
-        if (this.retryCount >= this.maxRetries) {
-          console.error('❌ Max retries reached. Stopping listener.');
-          this.stopListening();
-        } else {
-          console.log(`⏳ Retrying in ${delay / 1000} seconds...`);
-        }
-      }
-    }, this.baseDelay);
-  }
-
   private async getEthAfriPrice(): Promise<bigint> {
     try {
       // Get ETH/USD price first
@@ -134,6 +72,70 @@ export class DepositListener {
       console.error('❌ Using fallback calculation');
       return ethers.parseEther('25000000');
     }
+  }
+
+  async startListening() {
+    console.log('🚀 Starting Deposit event listener...');
+
+    const startBlock = await this.provider.getBlockNumber();
+    let lastBlock = startBlock;
+
+    this.pollingInterval = setInterval(async () => {
+      try {
+        const currentBlock = await this.provider.getBlockNumber();
+        
+        if (currentBlock > lastBlock) {
+          this.retryCount = 0;
+
+          const events = await this.contract.queryFilter(
+            this.contract.filters.Deposit(),
+            lastBlock + 1,
+            currentBlock
+          );
+
+          for (const event of events) {
+            if ('args' in event && Array.isArray(event.args)) {
+              const depositorAddress = event.args[0];
+              const ethAmount = event.args[1];
+              
+              console.log(`📥 Deposit detected: ${depositorAddress} sent ${ethers.formatEther(ethAmount)} ETH`);
+
+              try {
+                const ethAfriPriceWei = await this.getEthAfriPrice();
+                const afriAmount = (ethAmount * ethAfriPriceWei) / ethers.parseEther('1');
+                
+                // ✅ FIXED: Pass wallet address to fundUserWithAfriCoin
+                // The function will find the user by wallet address and update their balance
+                const result = await this.walletService.fundUserWithAfriCoin(
+                  depositorAddress,  // Wallet address where ETH was sent from
+                  ethers.formatEther(afriAmount)
+                );
+
+                console.log(`✅ Minted ${ethers.formatEther(afriAmount)} AFRI to ${depositorAddress}. TX: ${result.txHash}`);
+              } catch (error) {
+                console.error('❌ Failed to process deposit:', error);
+              }
+            } else {
+              console.warn('⚠️ Event does not have args property:', event);
+            }
+          }
+
+          lastBlock = currentBlock;
+        }
+      } catch (error) {
+        this.retryCount++;
+        const delay = this.baseDelay * Math.pow(2, this.retryCount - 1);
+        
+        console.error(`❌ Polling error (attempt ${this.retryCount}/${this.maxRetries}):`, error);
+        
+        if (this.retryCount >= this.maxRetries) {
+          console.error('❌ Max retries reached. Stopping listener.');
+          this.stopListening();
+        } else {
+          console.log(`⏳ Retrying in ${delay / 1000} seconds...`);
+        }
+      }
+    }, this.baseDelay);
   }
 
   /**
