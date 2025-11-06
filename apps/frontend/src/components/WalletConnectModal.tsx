@@ -222,6 +222,34 @@ export const WalletConnectModal = ({
     }
   };
 
+  /**
+   * Handle successful connection and deposit
+   */
+  const handleSuccess = async () => {
+    try {
+      // Save the connected wallet to backend
+      const response = await fetch('/api/wallet/connect-deposit-wallet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phoneHash: user?.phoneHash,
+          depositWalletAddress: account, // The connected MetaMask address
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to save wallet');
+
+      const data = await response.json();
+      console.log('✅ Deposit wallet connected:', data);
+      
+      // Now proceed with deposit
+      setStep('success');
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+      setError('Failed to save wallet connection');
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
