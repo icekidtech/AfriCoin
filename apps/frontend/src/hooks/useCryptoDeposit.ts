@@ -8,26 +8,8 @@ const SUPPORTED_TOKENS: Record<string, { address?: string; decimals: number }> =
     address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
     decimals: 6,
   },
-  USDT: {
-    address: '0xfA9343C3897324496A05fC75abeAD6dd30C5cf36',
-    decimals: 6,
-  },
-  DAI: {
-    address: '0x50c5725949A6F68dEfdeC694C0FFA86aB57FD7B1',
-    decimals: 18,
-  },
-  WETH: {
-    address: '0x4200000000000000000000000000000000000006',
-    decimals: 18,
-  },
-  CBETH: {
-    address: '0x2Ae3F1Ec7F1F5012CFEab0411dafAC2D7d47dd3a',
-    decimals: 18,
-  },
-  EURC: {
-    address: '0x60a3E35Cc302bDA186D53d013C2271F3B81ceb70',
-    decimals: 6,
-  },
+  // Removed: USDT, DAI, WETH, CBETH, EURC - not available on Base Sepolia testnet
+  // Add them back after verifying deployment on Base Sepolia
 };
 
 const ERC20_ABI = [
