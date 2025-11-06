@@ -273,6 +273,21 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
         description: `Transaction ${txHash.slice(0, 10)}... confirmed`,
       });
 
+      // ✅ ADD THIS: Wait a bit for backend to process, then refresh balance
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Refresh balance by reloading from API
+      try {
+        const balanceResponse = await api.wallet.getBalance(user?.phoneHash);
+        const newBalance = balanceResponse.data.data.balance;
+        console.log("✅ Updated balance:", newBalance);
+        
+        // Force re-render by dispatching an event or calling a refresh function
+        window.dispatchEvent(new Event('balance-updated'));
+      } catch (balanceErr) {
+        console.error("Failed to refresh balance:", balanceErr);
+      }
+
       setWalletModalOpen(false);
       onOpenChange(false);
       setAmount("");
@@ -281,7 +296,7 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
       console.error("Failed to record transaction:", err);
       toast({
         title: "Warning",
-        description: "Transaction sent but could not be recorded. Please contact support.",
+        description: "Transaction may have succeeded but failed to record",
         variant: "destructive",
       });
     }
