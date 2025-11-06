@@ -67,48 +67,52 @@ export class WalletService {
     try {
       const amountWei = ethers.parseEther(amount);
 
-      // Mint tokens on-chain
-      const tx = await this.contract.mint(depositWalletAddress, amountWei);
+      // ✅ Find user by depositWalletAddress (where ETH came from)
+      const user = await User.findOne({ depositWalletAddress });
+      
+      if (!user) {
+        console.warn(`⚠️  User not found for deposit wallet: ${depositWalletAddress}`);
+        return { txHash: null, error: "User not found" };
+      }
+
+      // ✅ IMPORTANT: Mint to user's SYSTEM wallet (walletAddress), not the deposit wallet
+      const tx = await this.contract.mint(user.walletAddress, amountWei);
       const receipt = await tx.wait();
 
       if (!receipt) throw new Error("Mint transaction failed");
 
       console.log(`✅ Tokens minted on-chain. TX: ${receipt.hash}`);
 
-      // ✅ FIXED: Find user by depositWalletAddress (the crypto wallet they connected)
-      const user = await User.findOne({ depositWalletAddress });
-      if (user) {
-        // Add the minted amount to existing balance
-        const currentBalance = BigInt(user.balance || '0');
-        const newBalance = (currentBalance + amountWei).toString();
-        
-        user.balance = newBalance;
-        await user.save();
-        
-        // ✅ Create transaction record
-        await Transaction.create({
-          transactionHash: receipt.hash,
-          senderPhoneHash: "blockchain-deposit",
-          senderPhone: "blockchain",
-          recipientPhoneHash: user.phoneHash,
-          recipientPhone: user.phone,
-          amount: amountWei.toString(),
-          status: "completed",
-          type: "receive",
-          metadata: {
-            source: "eth-deposit",
-            depositWalletAddress,
-          }
-        });
-        
-        console.log(`✅ Updated balance for user ${user.phoneHash}: +${ethers.formatEther(amountWei)} AFRI`);
-      } else {
-        console.warn(`⚠️  User not found for deposit wallet: ${depositWalletAddress}`);
-      }
+      // ✅ Update user's balance in database
+      const currentBalance = BigInt(user.balance || '0');
+      const newBalance = (currentBalance + amountWei).toString();
+      
+      user.balance = newBalance;
+      await user.save();
+
+      // ✅ Create transaction record
+      await Transaction.create({
+        transactionHash: receipt.hash,
+        senderPhoneHash: "blockchain-deposit",
+        senderPhone: "blockchain",
+        recipientPhoneHash: user.phoneHash,
+        recipientPhone: user.phone,
+        amount: amountWei.toString(),
+        status: "completed",
+        type: "receive",
+        metadata: {
+          source: "eth-deposit",
+          depositWalletAddress,  // Where it came from
+          receivingWallet: user.walletAddress  // Where it went
+        }
+      });
+
+      console.log(`✅ Updated balance for user ${user.phoneHash}: +${ethers.formatEther(amountWei)} AFRI to wallet ${user.walletAddress}`);
 
       return {
         txHash: receipt.hash,
         amount,
+        userWallet: user.walletAddress,
       };
     } catch (error) {
       console.error("Failed to fund wallet:", error);
