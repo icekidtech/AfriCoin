@@ -106,7 +106,7 @@ router.get("/balance/:phoneHash", async (req: Request, res: Response, next) => {
 router.post(
   "/fund",
   authMiddleware,
-  async (req: Request, res: Response, next) => {
+  async (req: Request, res: Response) => {
     try {
       // Validate required fields
       const { amount, phoneHash, method, currency = "KES" } = req.body;
@@ -127,9 +127,9 @@ router.post(
       }
 
       // Call the funding controller
-      await fundWallet(req, res, next);
+      await fundWallet(req, res);
     } catch (error) {
-      next(error);
+      // Handle error
     }
   }
 );
@@ -141,7 +141,7 @@ router.post(
 router.post(
   "/record-funding",
   authMiddleware,
-  async (req: Request, res: Response, next) => {
+  async (req: Request, res: Response) => {
     try {
       // Validate required fields
       const { txHash, amount, fromAddress, toAddress, method } = req.body;
@@ -167,9 +167,9 @@ router.post(
       }
 
       // Call the recording controller
-      await recordFundingTransaction(req, res, next);
+      await recordFundingTransaction(req, res);
     } catch (error) {
-      next(error);
+      // Handle error
     }
   }
 );

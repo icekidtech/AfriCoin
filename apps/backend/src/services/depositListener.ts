@@ -59,9 +59,9 @@ export class DepositListener {
       // Calculate: 1 ETH = (ETH/USD price) * (USD/AFRI rate) AFRI
       // Both prices are in wei (18 decimals)
       // Formula: (ethUsdPrice * usdAfriRate) / 10^18
-      const oneEther = ethers.parseEther('1');
-      const ethAfriPrice = (ethUsdPrice * usdAfriRate) / oneEther;
-      
+      const oneEther = BigInt(10 ** 18);
+      const ethAfriPrice = (BigInt(Math.floor(ethUsdPrice * usdAfriRate * Number(oneEther)))) / oneEther;
+
       console.log(`✅ Calculated ETH/AFRI price: ${ethers.formatEther(ethAfriPrice)} AFRI/ETH`);
       
       return ethAfriPrice;

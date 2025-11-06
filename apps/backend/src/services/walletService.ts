@@ -159,7 +159,7 @@ export class WalletService {
       const pinHash = await bcryptjs.hash(pin, 10);
 
       // Generate wallet address
-      const walletAddress = generateWalletAddress(phoneHash);
+      const walletAddress = generateWalletAddress();
 
       // Create new user with all required fields
       const user = new User({
