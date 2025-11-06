@@ -53,32 +53,34 @@ const Dashboard = () => {
         ).toString();
         setBalance(balanceInAfri);
 
-        // Fetch transaction history with error handling
-        try {
-          const historyResponse = await api.transfer.getHistory(
-            user.phoneHash,
-            10
-          );
-          const txData = historyResponse.data?.data?.transactions || [];
-          setTransactions(Array.isArray(txData) ? txData : []);
-        } catch (historyError) {
-          console.error("Failed to load transaction history:", historyError);
-          setTransactions([]);
-        }
+        // Fetch transaction history
+        const historyResponse = await api.transfer.getHistory(
+          user.phoneHash,
+          10
+        );
+        const txData = historyResponse.data?.data?.transactions || [];
+        setTransactions(Array.isArray(txData) ? txData : []);
 
         setLoading(false);
       } catch (error) {
         console.error("Failed to load user data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load wallet data",
-          variant: "destructive",
-        });
         setTransactions([]);
       }
     };
 
     loadUserData();
+
+    // ✅ Add: Listen for balance-updated event from TopUpDialog
+    const handleBalanceUpdate = () => {
+      console.log("📊 Balance update triggered, reloading...");
+      loadUserData();
+    };
+
+    window.addEventListener('balance-updated', handleBalanceUpdate);
+    
+    return () => {
+      window.removeEventListener('balance-updated', handleBalanceUpdate);
+    };
   }, [user?.phoneHash, toast]);
 
   const formatAmount = (wei: string) => {
