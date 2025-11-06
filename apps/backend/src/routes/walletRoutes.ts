@@ -174,4 +174,34 @@ router.post(
   }
 );
 
+/**
+ * POST /api/wallet/connect-deposit-wallet
+ * Connect crypto wallet for deposits
+ */
+router.post(
+  "/connect-deposit-wallet",
+  authMiddleware,
+  async (req: Request, res: Response, next) => {
+    try {
+      const { phoneHash, depositWalletAddress } = req.body;
+
+      if (!phoneHash || !depositWalletAddress) {
+        throw new AppError(400, "phoneHash and depositWalletAddress required");
+      }
+
+      const result = await walletService.connectDepositWallet(
+        phoneHash,
+        depositWalletAddress
+      );
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 export default router;
