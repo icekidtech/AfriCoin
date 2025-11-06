@@ -61,24 +61,58 @@ export class WalletService {
    * Called after fiat conversion
    */
   async fundUserWithAfriCoin(
-    userWalletAddress: string,
-    amountInEther: string
-  ): Promise<{ txHash: string; amount: string }> {
+    depositWalletAddress: string,
+    amount: string
+  ): Promise<any> {
     try {
-      const amountInWei = ethers.parseEther(amountInEther);
+      const amountWei = ethers.parseEther(amount);
 
-      // Mint tokens
-      const tx = await this.contract.mint(userWalletAddress, amountInWei);
-      
-      // Wait for confirmation
+      // Mint tokens on-chain
+      const tx = await this.contract.mint(depositWalletAddress, amountWei);
       const receipt = await tx.wait();
 
+      if (!receipt) throw new Error("Mint transaction failed");
+
+      console.log(`✅ Tokens minted on-chain. TX: ${receipt.hash}`);
+
+      // ✅ FIXED: Find user by depositWalletAddress (the crypto wallet they connected)
+      const user = await User.findOne({ depositWalletAddress });
+      if (user) {
+        // Add the minted amount to existing balance
+        const currentBalance = BigInt(user.balance || '0');
+        const newBalance = (currentBalance + amountWei).toString();
+        
+        user.balance = newBalance;
+        await user.save();
+        
+        // ✅ Create transaction record
+        await Transaction.create({
+          transactionHash: receipt.hash,
+          senderPhoneHash: "blockchain-deposit",
+          senderPhone: "blockchain",
+          recipientPhoneHash: user.phoneHash,
+          recipientPhone: user.phone,
+          amount: amountWei.toString(),
+          status: "completed",
+          type: "receive",
+          metadata: {
+            source: "eth-deposit",
+            depositWalletAddress,
+          }
+        });
+        
+        console.log(`✅ Updated balance for user ${user.phoneHash}: +${ethers.formatEther(amountWei)} AFRI`);
+      } else {
+        console.warn(`⚠️  User not found for deposit wallet: ${depositWalletAddress}`);
+      }
+
       return {
-        txHash: receipt!.hash,
-        amount: amountInEther,
+        txHash: receipt.hash,
+        amount,
       };
-    } catch (error: any) {
-      throw new Error(`Failed to fund wallet: ${error.message}`);
+    } catch (error) {
+      console.error("Failed to fund wallet:", error);
+      throw new AppError(500, `Failed to fund wallet: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -204,6 +238,101 @@ export class WalletService {
       throw new AppError(
         errorResponses.INTERNAL_ERROR.statusCode,
         errorResponses.INTERNAL_ERROR.message
+      );
+    }
+  }
+
+  /**
+   * Connect a crypto wallet for deposits (user can change this anytime)
+   */
+  async connectDepositWallet(
+    phoneHash: string,
+    depositWalletAddress: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const user = await User.findOne({ phoneHash });
+      if (!user) {
+        throw new AppError(404, "User not found");
+      }
+
+      const oldWallet = user.depositWalletAddress;
+      user.depositWalletAddress = depositWalletAddress;
+      await user.save();
+
+      console.log(`✅ Updated deposit wallet for ${phoneHash}: ${oldWallet} → ${depositWalletAddress}`);
+
+      return {
+        success: true,
+        message: `Deposit wallet updated to ${depositWalletAddress}`,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(500, "Failed to connect deposit wallet");
+    }
+  }
+
+  /**
+   * Get user's balance from blockchain (by wallet address)
+   * Useful when depositWalletAddress isn't set in database yet
+   */
+  async getBalanceFromBlockchain(walletAddress: string): Promise<string> {
+    try {
+      const balance = await this.contract.balanceOf(walletAddress);
+      return ethers.formatEther(balance);
+    } catch (error: any) {
+      throw new AppError(500, `Failed to fetch balance from blockchain: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get balance - tries database first, falls back to blockchain
+   */
+  async getBalanceFlexible(phoneHashOrWalletAddress: string): Promise<{ balance: string; decimals: number; symbol: string; source: string }> {
+    try {
+      // First try: Find user by phoneHash and get database balance
+      const user = await User.findOne({ phoneHash: phoneHashOrWalletAddress });
+      if (user && user.balance !== "0") {
+        return {
+          balance: user.balance,
+          decimals: 18,
+          symbol: "AFRI",
+          source: "database",
+        };
+      }
+
+      // Second try: If no balance or user not found, try as wallet address
+      const blockchainBalance = await this.getBalanceFromBlockchain(phoneHashOrWalletAddress);
+      if (blockchainBalance !== "0") {
+        return {
+          balance: ethers.parseEther(blockchainBalance).toString(),
+          decimals: 18,
+          symbol: "AFRI",
+          source: "blockchain",
+        };
+      }
+
+      // Fallback: Try blockchain lookup by user's generated walletAddress
+      if (user?.walletAddress) {
+        const walletBalance = await this.getBalanceFromBlockchain(user.walletAddress);
+        return {
+          balance: ethers.parseEther(walletBalance).toString(),
+          decimals: 18,
+          symbol: "AFRI",
+          source: "blockchain-generated-wallet",
+        };
+      }
+
+      return {
+        balance: "0",
+        decimals: 18,
+        symbol: "AFRI",
+        source: "none",
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        errorResponses.INTERNAL_ERROR.statusCode,
+        "Failed to fetch balance"
       );
     }
   }
