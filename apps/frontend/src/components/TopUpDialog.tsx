@@ -43,6 +43,8 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
   const [afriCoinAmount, setAfriCoinAmount] = useState<string | null>(null);
   const [showConversionDetails, setShowConversionDetails] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [showWalletConnect, setShowWalletConnect] = useState(false);
+  const [connectedDepositWallet, setConnectedDepositWallet] = useState<string | null>(null);
 
   const quickAmounts = [100, 500, 1000, 2000];
   const loading = priceLoading || fundingLoading || contractLoading || cryptoLoading || depositLoading;
@@ -73,10 +75,13 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
    * Update selected crypto when available cryptos change
    */
   useEffect(() => {
-    if (availableCryptos.length > 0 && !availableCryptos.find(c => c.symbol === selectedCrypto)) {
-      setSelectedCrypto(availableCryptos[0].symbol);
+    // ✅ Better null/undefined check
+    if (availableCryptos?.length > 0) {
+      if (!availableCryptos.find(c => c.symbol === selectedCrypto)) {
+        setSelectedCrypto(availableCryptos[0].symbol);
+      }
     }
-  }, [availableCryptos]);
+  }, [availableCryptos, selectedCrypto]);
 
   /**
    * Fetch conversion rate when amount or currency changes
@@ -119,7 +124,7 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
   };
 
   /**
-   * Handle crypto deposit
+   * Handle crypto deposit flow
    */
   const handleCryptoDeposit = async () => {
     if (!amount || !selectedCrypto) {
@@ -131,6 +136,13 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
       return;
     }
 
+    // ✅ STEP 1: Require wallet connection first
+    if (!connectedDepositWallet) {
+      setShowWalletConnect(true);
+      return;
+    }
+
+    // ✅ STEP 2: Proceed with deposit (user already connected)
     try {
       if (!window.ethereum) {
         throw new Error("MetaMask not detected");
@@ -140,11 +152,17 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
       const signer = await provider.getSigner();
       const signerAddress = await signer.getAddress();
 
+      // Verify connected wallet matches
+      if (signerAddress.toLowerCase() !== connectedDepositWallet.toLowerCase()) {
+        throw new Error("Connected wallet does not match. Please reconnect.");
+      }
+
       if (selectedCrypto === 'ETH') {
         const amountWei = ethers.parseEther(amount);
 
         // Validate amount before sending
         const balance = await provider.getBalance(signerAddress);
+        
         if (balance < amountWei) {
           throw new Error(`Insufficient ETH balance. You have ${ethers.formatEther(balance)} ETH`);
         }
@@ -158,10 +176,7 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
           AFRICOIN_ADDRESS
         );
 
-        toast({
-          title: "Deposit Submitted",
-          description: `Sent ${amount} ETH. TX: ${result.txHash.slice(0, 10)}...`,
-        });
+        handleWalletSuccess(result.txHash);
       } else {
         // For ERC20 tokens, use the existing depositCrypto logic
         const result = await depositCrypto(
@@ -300,6 +315,16 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleWalletConnected = (walletAddress: string) => {
+    setConnectedDepositWallet(walletAddress);
+    setShowWalletConnect(false);
+    // Wallet is now connected, user can proceed
+    toast({
+      title: "Wallet Connected",
+      description: `Connected: ${walletAddress.slice(0, 10)}...`,
+    });
   };
 
   return (
@@ -595,13 +620,32 @@ export const TopUpDialog = ({ open, onOpenChange }: TopUpDialogProps) => {
       </Dialog>
 
       {/* Wallet Connection Modal */}
-      <WalletConnectModal
-        open={walletModalOpen}
-        onOpenChange={setWalletModalOpen}
-        amount={afriCoinAmount || amount}
-        currency="AFRI"
-        onSuccess={handleWalletSuccess}
-      />
+      {showWalletConnect && (
+        <WalletConnectModal
+          open={showWalletConnect}
+          onOpenChange={setShowWalletConnect}
+          onConnected={handleWalletConnected}
+        />
+      )}
+
+      {/* Crypto deposit section */}
+      {fundingMethod === "wallet" && (
+        <div className="space-y-3">
+          {connectedDepositWallet && (
+            <Card className="p-3 bg-green-50 border-green-200">
+              <p className="text-sm text-green-700">
+                ✅ Connected: {connectedDepositWallet.slice(0, 10)}...{connectedDepositWallet.slice(-8)}
+              </p>
+            </Card>
+          )}
+          <Button 
+            onClick={handleCryptoDeposit}
+            disabled={!amount || !selectedCrypto || !connectedDepositWallet}
+          >
+            {!connectedDepositWallet ? "Connect Wallet First" : "Confirm Deposit"}
+          </Button>
+        </div>
+      )}
     </>
   );
 };
