@@ -6,19 +6,18 @@
   "packageManager": "pnpm@10.18.3",
   "scripts": {
     "dev": "turbo run dev --parallel",
-    "build": "turbo run build",
+    "build": "turbo run build --filter='./apps/*' --filter='./packages/*'",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
     "lint": "turbo run lint",
     "format": "turbo run format",
-    "install:all": "turbo run install",
     "compile": "turbo run compile --filter=@africoin/contracts",
     "deploy:sepolia": "turbo run deploy:sepolia --filter=@africoin/contracts",
     "clean": "turbo run clean && rm -rf node_modules",
     "mockOracle": "chmod +x ./scripts/mockOracle.sh && ./scripts/mockOracle.sh"
   },
   "devDependencies": {
-    "turbo": "^1.10.16"
+    "turbo": "^2.6.0"
   },
   "engines": {
     "node": ">=16.0.0"
