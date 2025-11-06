@@ -5,7 +5,7 @@ import { AppError, errorResponses } from "../utils/errorHandler.js";
 import bcryptjs from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import { ethers } from 'ethers';
-import { AFRICOIN_ADDRESS, AFRICOIN_ABI } from '../config/contracts';
+import { AFRICOIN_ADDRESS, AFRICOIN_ABI } from '../config/contracts.js';
 import dotenv from 'dotenv';
 
 // Load .env at the top of this module

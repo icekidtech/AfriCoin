@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import twilio from "twilio";
-import { AppError, errorResponses } from "../utils/errorHandler";
+import { AppError, errorResponses } from "../utils/errorHandler.js";
 
 // Load .env at the top of this module
 dotenv.config();
