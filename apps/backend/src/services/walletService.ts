@@ -1,4 +1,4 @@
-import User, { IUser } from "../models/User.js";
+import User from "../models/User.js";
 import Transaction from "../models/Transaction.js";
 import { hashPhone, generateWalletAddress } from "../utils/phoneHash.js";
 import { AppError, errorResponses } from "../utils/errorHandler.js";

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
-import otpService from "../services/otpService";
-import { validatePhoneNumber } from "../utils/validators";
-import { AppError, errorResponses } from "../utils/errorHandler";
+import otpService from "../services/otpService.js";
+import { validatePhoneNumber } from "../utils/validators.js";
+import { AppError, errorResponses } from "../utils/errorHandler.js";
 
 const router: any = Router();
 

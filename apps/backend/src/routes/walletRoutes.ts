@@ -4,7 +4,6 @@ import { hashPhone } from "../utils/phoneHash.js";
 import { validatePhoneNumber, validatePin, validateName } from "../utils/validators.js";
 import { AppError, errorResponses } from "../utils/errorHandler.js";
 import { fundWallet, recordFundingTransaction } from "../controllers/walletController.js";
-import { authMiddleware } from "../middleware/auth.js";
 
 const router: Router = Router();
 
