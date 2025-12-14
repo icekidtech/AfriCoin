@@ -5,6 +5,8 @@
   "private": true,
   "packageManager": "pnpm@10.18.3",
   "scripts": {
+    "install:backend": "cd apps/backend && pnpm install",
+    "install:frontend": "cd apps/frontend && pnpm install",
     "dev:frontend": "cd apps/frontend && pnpm dev",
     "dev:backend": "cd apps/backend && pnpm dev",
     "dev:contracts": "cd packages/base-blockchain && pnpm dev",
